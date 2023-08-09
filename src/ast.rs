@@ -1,12 +1,13 @@
 // TODO: add optional type annotations
 
+// TODO: make internal value private
 #[derive(Debug, PartialEq, Clone)]
-pub struct Id(String);
+pub struct Id(pub String);
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     Int(i64),
-    Str(String)
+    Str(String),
 }
 
 // at some point we want to support patterns as arguments
@@ -31,4 +32,3 @@ pub enum ParsedExpr {
 //     TypeAnnotation(Id, Box<ParsedExpr>),
 //     ValueDefinition(Id, Args, Box<ParsedExpr>),
 // }
-

@@ -1,7 +1,7 @@
 use logos::{Logos, SpannedIter};
 use std::fmt;
 
-#[derive(Logos, Debug, PartialEq)]
+#[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\n\f]+")]
 pub enum Token {
     #[token("(")]
@@ -40,35 +40,38 @@ impl fmt::Display for Token {
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
+#[derive(Debug, Clone)]
 pub enum LexicalError {
-  InvalidToken,
+    InvalidToken,
 }
 
 pub struct Lexer<'input> {
-  // instead of an iterator over characters, we have a token iterator
-  token_stream: SpannedIter<'input, Token>,
+    // instead of an iterator over characters, we have a token iterator
+    token_stream: SpannedIter<'input, Token>,
 }
 
 // TODO: remove allow
 #[allow(dead_code)]
 impl<'input> Lexer<'input> {
-  pub fn new(input: &'input str) -> Self {
-    // the Token::lexer() method is provided by the Logos trait
-    Self { token_stream: Token::lexer(input).spanned() }
-  }
+    pub fn new(input: &'input str) -> Self {
+        // the Token::lexer() method is provided by the Logos trait
+        Self {
+            token_stream: Token::lexer(input).spanned(),
+        }
+    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
-  type Item = Spanned<Token, usize, LexicalError>;
+    type Item = Spanned<Token, usize, LexicalError>;
 
-  fn next(&mut self) -> Option<Self::Item> {
-    self.token_stream.next().map(|(token_or_err, span)| {
-        match token_or_err {
-            Ok(token) => Ok((span.start, token, span.end)),
-            Err(_err) => Err(LexicalError::InvalidToken),
-        }
-    })
-  }
+    fn next(&mut self) -> Option<Self::Item> {
+        self.token_stream
+            .next()
+            .map(|(token_or_err, span)| match token_or_err {
+                Ok(token) => Ok((span.start, token, span.end)),
+                Err(_err) => Err(LexicalError::InvalidToken),
+            })
+    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
-use ast::{ParsedExpr, Var, Literal, Args, Definition};
-use lexer::Token;
+use crate::ast::{ParsedExpr, Literal, Id};
+use crate::lexer::{LexicalError, Token};
 
 grammar;
 
@@ -31,10 +31,10 @@ pub Expr: Box<ParsedExpr> = {
 
 SubExpr: Box<ParsedExpr> = {
     Terminal,
-    "(" Expr ")",
+    "(" <e:Expr> ")" => e
 }
 
-Terminal: Box<Expression> = {
+Terminal: Box<ParsedExpr> = {
   <int:"integer literal"> => {
      Box::new(ParsedExpr::Lit(Literal::Int(int)))
   },
@@ -54,7 +54,7 @@ LetExpr: Box<ParsedExpr> = {
 
 Args: Vec<Id> = {
   <params:"identifier"*> => {
-    params.map(|param| Id(param))
+    params.into_iter().map(|param| Id(param)).collect::<Vec<_>>()
   }
 }
 
