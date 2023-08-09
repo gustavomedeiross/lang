@@ -1,0 +1,71 @@
+use ast::{ParsedExpr, Var, Literal, Args, Definition};
+use lexer::Token;
+
+grammar;
+
+extern {
+  type Location = usize;
+  type Error = LexicalError;
+
+  enum Token {
+    "(" => Token::LParens,
+    ")" => Token::RParens,
+    "let" => Token::Let,
+    "in" => Token::In,
+    "=" => Token::Equals,
+    ":" => Token::Colon,
+    "->" => Token::Arrow,
+    "fun" => Token::Fun,
+    "integer literal" => Token::IntegerLiteral(<i64>),
+    "string literal" => Token::StringLiteral(<String>),
+    "identifier" => Token::Identifier(<String>),
+  }
+}
+
+pub Expr: Box<ParsedExpr> = {
+    SubExpr,
+    LambdaExpr,
+    AppExpr,
+    LetExpr,
+}
+
+SubExpr: Box<ParsedExpr> = {
+    Terminal,
+    "(" Expr ")",
+}
+
+Terminal: Box<Expression> = {
+  <int:"integer literal"> => {
+     Box::new(ParsedExpr::Lit(Literal::Int(int)))
+  },
+  <str:"string literal"> => {
+     Box::new(ParsedExpr::Lit(Literal::Str(str)))
+  },
+  <id:"identifier"> => {
+     Box::new(ParsedExpr::Var(Id(id)))
+  },
+}
+
+LetExpr: Box<ParsedExpr> = {
+  "let" <id:"identifier"> <e1:Expr> "in" <e2:Expr> => {
+     Box::new(ParsedExpr::Let(Id(id), e1, e2))
+   }
+}
+
+Args: Vec<Id> = {
+  <params:"identifier"*> => {
+    params.map(|param| Id(param))
+  }
+}
+
+LambdaExpr: Box<ParsedExpr> = {
+  "fun" <args:Args> "->" <body:Expr> => {
+    Box::new(ParsedExpr::Lambda(args, body))
+  }
+}
+
+AppExpr: Box<ParsedExpr> = {
+  <e:SubExpr> <es:SubExpr+> => {
+    Box::new(ParsedExpr::App(e, es))
+  }
+}
