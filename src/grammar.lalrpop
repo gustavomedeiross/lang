@@ -47,7 +47,7 @@ Terminal: Box<ParsedExpr> = {
 }
 
 LetExpr: Box<ParsedExpr> = {
-  "let" <id:"identifier"> <e1:Expr> "in" <e2:Expr> => {
+  "let" <id:"identifier"> "=" <e1:Expr> "in" <e2:Expr> => {
      Box::new(ParsedExpr::Let(Id(id), e1, e2))
    }
 }
