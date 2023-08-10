@@ -77,4 +77,18 @@ mod parser_tests {
 
         assert_eq!(result, expected);
     }
+
+    #[test]
+    fn test_subexpr() {
+        let result = parse("f (g x)");
+        let expected = ParsedExpr::App(
+            Box::new(ParsedExpr::Var(Id("f".to_owned()))),
+            vec![Box::new(ParsedExpr::App(
+                Box::new(ParsedExpr::Var(Id("g".to_owned()))),
+                vec![Box::new(ParsedExpr::Var(Id("x".to_owned())))],
+            ))],
+        );
+
+        assert_eq!(result, expected);
+    }
 }
