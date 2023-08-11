@@ -1,5 +1,3 @@
-// TODO: add optional type annotations
-
 // TODO: make internal value private
 #[derive(Debug, PartialEq, Clone)]
 pub struct Id(pub String);
@@ -32,3 +30,12 @@ pub enum ParsedExpr {
 //     TypeAnnotation(Id, Box<ParsedExpr>),
 //     ValueDefinition(Id, Args, Box<ParsedExpr>),
 // }
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Expr<T> {
+    Var(Id),
+    Lit(Literal),
+    App(Box<Expr<T>>, Box<Expr<T>>),
+    Let(Id, T, Box<Expr<T>>, Box<Expr<T>>),
+    Lambda(Id, T, Box<Expr<T>>),
+}
