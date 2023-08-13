@@ -31,3 +31,5 @@ pub enum Expr<T> {
     Let(Id, T, Box<Expr<T>>, Box<Expr<T>>),
     Lambda(Id, T, Box<Expr<T>>),
 }
+
+// TODO: implement TryFrom<ParsedExpr> for Expr<()>
