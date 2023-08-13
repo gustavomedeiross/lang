@@ -1,5 +1,6 @@
 mod ast;
 mod lexer;
+mod simplifier;
 mod typer;
 
 use lalrpop_util::lalrpop_mod;

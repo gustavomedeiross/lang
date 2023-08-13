@@ -20,16 +20,8 @@ pub enum ParsedExpr {
     App(Box<ParsedExpr>, Vec<Box<ParsedExpr>>),
     // TODO: add support for multiple bindings in a single let
     Let(Id, Box<ParsedExpr>, Box<ParsedExpr>),
-    // Let(Vec<Definition>, Box<ParsedExpr>),
     Lambda(Args, Box<ParsedExpr>),
 }
-
-// #[derive(Debug, PartialEq, Clone)]
-// pub enum Definition {
-//     // TODO: maybe "Signature" would be a better name
-//     TypeAnnotation(Id, Box<ParsedExpr>),
-//     ValueDefinition(Id, Args, Box<ParsedExpr>),
-// }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<T> {
