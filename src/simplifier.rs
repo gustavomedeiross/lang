@@ -7,7 +7,6 @@ pub fn simplify(parsed_expr: ParsedExpr) -> Result<Expr<()>, SimplifierError> {
     match parsed_expr {
         ParsedExpr::Var(id) =>  Ok(Expr::Var(id)),
         ParsedExpr::Lit(lit) => Ok(Expr::Lit(lit)),
-        // TODO: do something
         ParsedExpr::App(e, es) => {
             let expr = simplify(*e)?;
             es.into_iter().try_fold(expr, |acc, e| {
@@ -17,7 +16,6 @@ pub fn simplify(parsed_expr: ParsedExpr) -> Result<Expr<()>, SimplifierError> {
         ParsedExpr::Let(id, e1, e2) => Ok(Expr::Let(
             id,
             (),
-            // TODO: Box.map
             Box::new(simplify(*e1)?),
             Box::new(simplify(*e2)?),
         )),
