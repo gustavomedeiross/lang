@@ -1,3 +1,5 @@
+use crate::typer::Type;
+
 // TODO: make internal value private
 #[derive(Debug, PartialEq, Clone)]
 pub struct Id(pub String);
@@ -22,6 +24,9 @@ pub enum ParsedExpr {
     Let(Id, Box<ParsedExpr>, Box<ParsedExpr>),
     Lambda(Args, Box<ParsedExpr>),
 }
+
+pub type UntypedExpr = Expr<()>;
+pub type TypedExpr = Expr<Type>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<T> {
