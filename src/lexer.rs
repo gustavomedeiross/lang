@@ -40,7 +40,7 @@ impl fmt::Display for Token {
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LexicalError {
     InvalidToken,
 }
