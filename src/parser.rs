@@ -1,15 +1,13 @@
-use lalrpop_util::lalrpop_mod;
 use crate::{
     ast::ParsedExpr,
-    lexer::{self, Lexer}
+    lexer::{self, Lexer},
 };
+use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(pub grammar);
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct SyntaxError(
-    lalrpop_util::ParseError<usize, lexer::Token, lexer::LexicalError>,
-);
+pub struct SyntaxError(lalrpop_util::ParseError<usize, lexer::Token, lexer::LexicalError>);
 
 pub fn parse(input: &str) -> Result<Box<ParsedExpr>, SyntaxError> {
     let tokens = Lexer::new(input);

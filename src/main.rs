@@ -7,4 +7,3 @@ mod typer;
 fn main() {
     println!("Hello, world!");
 }
-
