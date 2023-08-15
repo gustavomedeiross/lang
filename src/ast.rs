@@ -1,8 +1,13 @@
 use crate::typer::Type;
 
-// TODO: make internal value private
 #[derive(Debug, PartialEq, Clone)]
-pub struct Id(pub String);
+pub struct Id(String);
+
+impl Id {
+    pub fn new(s: &str) -> Self {
+        Id(s.to_owned())
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {

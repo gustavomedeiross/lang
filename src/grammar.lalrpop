@@ -42,19 +42,19 @@ Terminal: Box<ParsedExpr> = {
      Box::new(ParsedExpr::Lit(Literal::Str(str)))
   },
   <id:"identifier"> => {
-     Box::new(ParsedExpr::Var(Id(id)))
+     Box::new(ParsedExpr::Var(Id::new(&id)))
   },
 }
 
 LetExpr: Box<ParsedExpr> = {
   "let" <id:"identifier"> "=" <e1:Expr> "in" <e2:Expr> => {
-     Box::new(ParsedExpr::Let(Id(id), e1, e2))
+     Box::new(ParsedExpr::Let(Id::new(&id), e1, e2))
    }
 }
 
 Args: Vec<Id> = {
   <params:"identifier"*> => {
-    params.into_iter().map(|param| Id(param)).collect::<Vec<_>>()
+    params.into_iter().map(|param| Id::new(&param)).collect::<Vec<_>>()
   }
 }
 

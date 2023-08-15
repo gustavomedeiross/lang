@@ -36,21 +36,21 @@ mod tests {
     fn test_lambda() {
         // fun a b c -> a
         let parsed_expr = ParsedExpr::Lambda(
-            vec![Id("a".to_owned()), Id("b".to_owned()), Id("c".to_owned())],
-            Box::new(ParsedExpr::Var(Id("a".to_owned()))),
+            vec![Id::new("a"), Id::new("b"), Id::new("c")],
+            Box::new(ParsedExpr::Var(Id::new("a"))),
         );
 
         // fun a -> fun b -> a
         let expected = UntypedExpr::Lambda(
-            Id("a".to_owned()),
+            Id::new("a"),
             (),
             Box::new(UntypedExpr::Lambda(
-                Id("b".to_owned()),
+                Id::new("b"),
                 (),
                 Box::new(UntypedExpr::Lambda(
-                    Id("c".to_owned()),
+                    Id::new("c"),
                     (),
-                    Box::new(UntypedExpr::Var(Id("a".to_owned()))),
+                    Box::new(UntypedExpr::Var(Id::new("a"))),
                 )),
             )),
         );
@@ -62,11 +62,11 @@ mod tests {
     fn test_app() {
         // f a b c
         let parsed_expr = ParsedExpr::App(
-            Box::new(ParsedExpr::Var(Id("f".to_owned()))),
+            Box::new(ParsedExpr::Var(Id::new("f"))),
             vec![
-                Box::new(ParsedExpr::Var(Id("a".to_owned()))),
-                Box::new(ParsedExpr::Var(Id("b".to_owned()))),
-                Box::new(ParsedExpr::Var(Id("c".to_owned()))),
+                Box::new(ParsedExpr::Var(Id::new("a"))),
+                Box::new(ParsedExpr::Var(Id::new("b"))),
+                Box::new(ParsedExpr::Var(Id::new("c"))),
             ],
         );
 
@@ -74,12 +74,12 @@ mod tests {
         let expected = UntypedExpr::App(
             Box::new(UntypedExpr::App(
                 Box::new(UntypedExpr::App(
-                    Box::new(UntypedExpr::Var(Id("f".to_owned()))),
-                    Box::new(UntypedExpr::Var(Id("a".to_owned()))),
+                    Box::new(UntypedExpr::Var(Id::new("f"))),
+                    Box::new(UntypedExpr::Var(Id::new("a"))),
                 )),
-                Box::new(UntypedExpr::Var(Id("b".to_owned()))),
+                Box::new(UntypedExpr::Var(Id::new("b"))),
             )),
-            Box::new(UntypedExpr::Var(Id("c".to_owned()))),
+            Box::new(UntypedExpr::Var(Id::new("c"))),
         );
 
         assert_eq!(simplify(parsed_expr), Ok(expected));
@@ -89,14 +89,14 @@ mod tests {
     fn complex_expr() {
         // let f = fun a b -> a in f 1 2
         let parsed_expr = ParsedExpr::Let(
-            Id("f".to_owned()),
+            Id::new("f"),
             Box::new(ParsedExpr::Lambda(
-                vec![Id("a".to_owned()), Id("b".to_owned())],
-                Box::new(ParsedExpr::Var(Id("a".to_owned()))),
+                vec![Id::new("a"), Id::new("b")],
+                Box::new(ParsedExpr::Var(Id::new("a"))),
             )),
             Box::new(ParsedExpr::App(
                 Box::new(ParsedExpr::App(
-                    Box::new(ParsedExpr::Var(Id("f".to_owned()))),
+                    Box::new(ParsedExpr::Var(Id::new("f"))),
                     vec![
                         Box::new(ParsedExpr::Lit(Literal::Int(1))),
                         Box::new(ParsedExpr::Lit(Literal::Int(2))),
@@ -108,20 +108,20 @@ mod tests {
 
         // let f = fun a -> fun b -> a in ((f 1) 2)
         let expected = UntypedExpr::Let(
-            Id("f".to_owned()),
+            Id::new("f"),
             (),
             Box::new(UntypedExpr::Lambda(
-                Id("a".to_owned()),
+                Id::new("a"),
                 (),
                 Box::new(UntypedExpr::Lambda(
-                    Id("b".to_owned()),
+                    Id::new("b"),
                     (),
-                    Box::new(UntypedExpr::Var(Id("a".to_owned()))),
+                    Box::new(UntypedExpr::Var(Id::new("a"))),
                 )),
             )),
             Box::new(UntypedExpr::App(
                 Box::new(UntypedExpr::App(
-                    Box::new(UntypedExpr::Var(Id("f".to_owned()))),
+                    Box::new(UntypedExpr::Var(Id::new("f"))),
                     Box::new(UntypedExpr::Lit(Literal::Int(1))),
                 )),
                 Box::new(UntypedExpr::Lit(Literal::Int(2))),

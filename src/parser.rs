@@ -37,8 +37,8 @@ mod parser_tests {
     fn test_lambda() {
         let result = parse("fun x -> x");
         let expected = ParsedExpr::Lambda(
-            vec![Id("x".to_owned())],
-            Box::new(ParsedExpr::Var(Id("x".to_owned()))),
+            vec![Id::new("x")],
+            Box::new(ParsedExpr::Var(Id::new("x"))),
         );
 
         assert_eq!(result, expected);
@@ -48,8 +48,8 @@ mod parser_tests {
     fn test_application_1() {
         let result = parse("f x");
         let expected = ParsedExpr::App(
-            Box::new(ParsedExpr::Var(Id("f".to_owned()))),
-            vec![Box::new(ParsedExpr::Var(Id("x".to_owned())))],
+            Box::new(ParsedExpr::Var(Id::new("f"))),
+            vec![Box::new(ParsedExpr::Var(Id::new("x")))],
         );
 
         assert_eq!(result, expected);
@@ -59,10 +59,10 @@ mod parser_tests {
     fn test_application_2() {
         let result = parse("f x y");
         let expected = ParsedExpr::App(
-            Box::new(ParsedExpr::Var(Id("f".to_owned()))),
+            Box::new(ParsedExpr::Var(Id::new("f"))),
             vec![
-                Box::new(ParsedExpr::Var(Id("x".to_owned()))),
-                Box::new(ParsedExpr::Var(Id("y".to_owned()))),
+                Box::new(ParsedExpr::Var(Id::new("x"))),
+                Box::new(ParsedExpr::Var(Id::new("y"))),
             ],
         );
 
@@ -73,9 +73,9 @@ mod parser_tests {
     fn test_let() {
         let result = parse("let x = 1 in x");
         let expected = ParsedExpr::Let(
-            Id("x".to_owned()),
+            Id::new("x"),
             Box::new(ParsedExpr::Lit(Literal::Int(1))),
-            Box::new(ParsedExpr::Var(Id("x".to_owned()))),
+            Box::new(ParsedExpr::Var(Id::new("x"))),
         );
 
         assert_eq!(result, expected);
@@ -85,10 +85,10 @@ mod parser_tests {
     fn test_subexpr() {
         let result = parse("f (g x)");
         let expected = ParsedExpr::App(
-            Box::new(ParsedExpr::Var(Id("f".to_owned()))),
+            Box::new(ParsedExpr::Var(Id::new("f"))),
             vec![Box::new(ParsedExpr::App(
-                Box::new(ParsedExpr::Var(Id("g".to_owned()))),
-                vec![Box::new(ParsedExpr::Var(Id("x".to_owned())))],
+                Box::new(ParsedExpr::Var(Id::new("g"))),
+                vec![Box::new(ParsedExpr::Var(Id::new("x")))],
             ))],
         );
 
