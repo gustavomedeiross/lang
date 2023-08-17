@@ -36,10 +36,8 @@ mod parser_tests {
     #[test]
     fn test_lambda() {
         let result = parse("fun x -> x");
-        let expected = ParsedExpr::Lambda(
-            vec![Id::new("x")],
-            Box::new(ParsedExpr::Var(Id::new("x"))),
-        );
+        let expected =
+            ParsedExpr::Lambda(vec![Id::new("x")], Box::new(ParsedExpr::Var(Id::new("x"))));
 
         assert_eq!(result, expected);
     }

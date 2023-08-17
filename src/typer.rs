@@ -1,7 +1,7 @@
-use crate::ast::{TypedExpr, UntypedExpr};
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum Type {}
+use crate::{
+    ast::{TypedExpr, UntypedExpr},
+    types::Type,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeError {}

@@ -1,4 +1,4 @@
-use crate::typer::Type;
+use crate::types::Type;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Id(String);
