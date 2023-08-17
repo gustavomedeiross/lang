@@ -7,7 +7,7 @@ pub enum Kind {
 }
 
 enum KindError {
-    TypeIsNotWellFormed,
+    KindMismatch,
 }
 
 trait HasKind {
@@ -31,7 +31,7 @@ impl HasKind for Type {
             Type::Con(tycon) => tycon.kind(),
             Type::App(t, _) => match t.kind()? {
                 Kind::KFun(_, k) => Ok(*k),
-                _ => Err(KindError::TypeIsNotWellFormed),
+                _ => Err(KindError::KindMismatch),
             },
             Type::Arrow(_, _) => {
                 // TODO: hopefully this will not shoot me in the foot when I do partial type applications
