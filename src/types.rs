@@ -57,3 +57,20 @@ impl HasKind for TyCon {
         Ok(self.1.clone())
     }
 }
+
+/// Qualified types - types with predicates
+/// e.g.: "(Eq a, Eq b) => a -> b -> Bool"
+pub type QualType = Qual<Type>;
+
+/// Represents a type qualifier
+/// - A function type, e.g.: "(Eq a, Eq b) => a -> b -> Bool"
+/// - A type class definition, e.g.: "class Applicative m => Monad m where"
+/// - A instance declaration, e.g.: "instance (Ord a, Ord b) => Ord (a, b) where"
+///
+/// The pieces before the "=>" are the predicates, and the pieces after are generic (e.g. a function, a type class, or an instance declaration).
+#[derive(Debug, PartialEq, Clone)]
+pub struct Qual<T>(Vec<Pred>, T);
+
+/// Represents a predicate, e.g.: "Eq a"
+#[derive(Debug, PartialEq, Clone)]
+pub struct Pred(Id, Type);
