@@ -33,12 +33,9 @@ impl HasKind for Type {
                 Kind::KFun(_, k) => Ok(*k),
                 _ => Err(KindError::KindMismatch),
             },
-            Type::Arrow(_, _) => {
-                // TODO: hopefully this will not shoot me in the foot when I do partial type applications
-
-                // for now it's probably safe to assume that arrows have kind *
-                Ok(Kind::Star)
-            }
+            // as we don't allow partial application of arrows (e.g. "(->) Int" in Haskell),
+            // we can safely assume that arrow expressions have kind "*"
+            Type::Arrow(_, _) => Ok(Kind::Star),
         }
     }
 }
