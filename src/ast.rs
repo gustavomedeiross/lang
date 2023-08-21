@@ -1,4 +1,4 @@
-use crate::types::Type;
+use crate::types::QualType;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Id(String);
@@ -31,15 +31,14 @@ pub enum ParsedExpr {
 }
 
 pub type UntypedExpr = Expr<()>;
-pub type TypedExpr = Expr<Type>;
+pub type TypedExpr = Expr<QualType>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<T> {
+    // TODO: should Vars be annotated with types after typechecking?
     Var(Id),
-    Lit(Literal),
+    Lit(Literal, T),
     App(Box<Expr<T>>, Box<Expr<T>>),
     Let(Id, T, Box<Expr<T>>, Box<Expr<T>>),
     Lambda(Id, T, Box<Expr<T>>),
 }
-
-// TODO: implement TryFrom<ParsedExpr> for Expr<()>

@@ -6,7 +6,7 @@ pub enum SimplifierError {}
 pub fn simplify(parsed_expr: ParsedExpr) -> Result<UntypedExpr, SimplifierError> {
     match parsed_expr {
         ParsedExpr::Var(id) => Ok(UntypedExpr::Var(id)),
-        ParsedExpr::Lit(lit) => Ok(UntypedExpr::Lit(lit)),
+        ParsedExpr::Lit(lit) => Ok(UntypedExpr::Lit(lit, ())),
         ParsedExpr::App(e, es) => {
             let expr = simplify(*e)?;
             es.into_iter().try_fold(expr, |acc, e| {
@@ -122,9 +122,9 @@ mod tests {
             Box::new(UntypedExpr::App(
                 Box::new(UntypedExpr::App(
                     Box::new(UntypedExpr::Var(Id::new("f"))),
-                    Box::new(UntypedExpr::Lit(Literal::Int(1))),
+                    Box::new(UntypedExpr::Lit(Literal::Int(1), ())),
                 )),
-                Box::new(UntypedExpr::Lit(Literal::Int(2))),
+                Box::new(UntypedExpr::Lit(Literal::Int(2), ())),
             )),
         );
         assert_eq!(simplify(parsed_expr), Ok(expected));

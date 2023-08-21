@@ -41,7 +41,7 @@ impl HasKind for Type {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct TyVar(Id, Kind);
+pub struct TyVar(pub Id, pub Kind);
 
 impl HasKind for TyVar {
     fn kind(&self) -> Result<Kind, KindError> {
@@ -50,7 +50,7 @@ impl HasKind for TyVar {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct TyCon(Id, Kind);
+pub struct TyCon(pub Id, pub Kind);
 
 impl HasKind for TyCon {
     fn kind(&self) -> Result<Kind, KindError> {
@@ -71,6 +71,38 @@ pub type QualType = Qual<Type>;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Qual<T>(Vec<Pred>, T);
 
+impl<T> Qual<T> {
+    pub fn new(preds: Vec<Pred>, t: T) -> Self {
+        Qual(preds, t)
+    }
+}
+
 /// Represents a predicate, e.g.: "Eq a"
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pred(Id, Type);
+
+impl Pred {
+    pub fn new(id: Id, ty: Type) -> Self {
+        Pred(id, ty)
+    }
+}
+
+pub mod prelude {
+    use super::*;
+
+    pub fn t_char() -> Type {
+        Type::Con(TyCon(Id::new("Char"), Kind::Star))
+    }
+
+    pub fn t_list() -> Type {
+        Type::Con(TyCon(Id::new("[]"), Kind::KFun(Box::new(Kind::Star), Box::new(Kind::Star))))
+    }
+
+    fn list(t: Type) -> Type {
+        Type::App(Box::new(t_list()), Box::new(t))
+    }
+
+    pub fn t_string() -> Type {
+        list(t_char())
+    }
+}
