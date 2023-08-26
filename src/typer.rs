@@ -6,13 +6,21 @@ use crate::{
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeError {}
 
-pub fn infer(expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
-    match expr {
-        UntypedExpr::Var(id) => Ok(TypedExpr::Var(id)),
-        UntypedExpr::Lit(lit, ()) => Ok(infer_lit(lit)),
-        UntypedExpr::App(_, _) => todo!(),
-        UntypedExpr::Let(_, _, _, _) => todo!(),
-        UntypedExpr::Lambda(_, _, _) => todo!(),
+pub struct Typer {}
+
+impl Typer {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn infer(&self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
+        match expr {
+            UntypedExpr::Var(id) => Ok(TypedExpr::Var(id)),
+            UntypedExpr::Lit(lit, ()) => Ok(infer_lit(lit)),
+            UntypedExpr::App(_, _) => todo!(),
+            UntypedExpr::Let(_, _, _, _) => todo!(),
+            UntypedExpr::Lambda(_, _, _) => todo!(),
+        }
     }
 }
 
@@ -38,7 +46,8 @@ mod tests {
     fn infer(input: &str) -> Result<TypedExpr, TypeError> {
         let parsed = parser::parse(input).expect("parsing failed");
         let expr = simplifier::simplify(*parsed).expect("simplification failed");
-        super::infer(expr)
+        let typer = Typer::new();
+        typer.infer(expr)
     }
 
     // TODO: make tests nicer to read
