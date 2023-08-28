@@ -6,14 +6,61 @@ use crate::{
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeError {}
 
-pub struct Typer {}
+pub struct Typer {
+    type_env: TypeEnv,
+}
 
 impl Typer {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(prelude: Prelude) -> Self {
+        Self {
+            type_env: TypeEnv::new(prelude.0),
+        }
+    }
+}
+
+// TODO: add assumptions
+pub struct Prelude(pub TypeClassEnv);
+
+pub struct TypeClassEnv;
+
+struct TypeEnv {
+    tyvar_state: TyVarState,
+    type_class_env: TypeClassEnv,
+}
+
+impl TypeEnv {
+    fn new(class_env: TypeClassEnv) -> Self {
+        Self {
+            tyvar_state: TyVarState,
+            type_class_env: TypeClassEnv,
+        }
+    }
+}
+
+struct TyVarState;
+
+struct Constraint(Type, Type);
+
+// TODO: maybe remove `pub`
+struct Subst(pub Vec<(TyVar, Type)>);
+
+impl Typer {
+    pub fn type_check(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
+        let (typed_expr, constraints) = self.infer(expr);
+        let _subst = self.unify(constraints);
+        // TODO: apply substitutions to typed_expr
+        Ok(typed_expr)
     }
 
-    pub fn infer(&self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
+    // TODO: remove
+    // update TypedExpr to be something that can have TGen values
+    // in the middle of the expression (look at the definition of thio::quantify)
+    fn infer(&mut self, expr: UntypedExpr) -> (TypedExpr, Vec<Constraint>) {
+        let typed_expr = self.infer_expr(expr).expect("type inference failed");
+        (typed_expr, vec![])
+    }
+
+    fn infer_expr(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
         match expr {
             UntypedExpr::Var(id) => Ok(TypedExpr::Var(id)),
             UntypedExpr::Lit(lit, ()) => Ok(infer_lit(lit)),
@@ -21,6 +68,11 @@ impl Typer {
             UntypedExpr::Let(_, _, _, _) => todo!(),
             UntypedExpr::Lambda(_, _, _) => todo!(),
         }
+    }
+
+
+    fn unify(&mut self, _constraints: Vec<Constraint>) -> Subst {
+        Subst(vec![])
     }
 }
 
@@ -46,8 +98,12 @@ mod tests {
     fn infer(input: &str) -> Result<TypedExpr, TypeError> {
         let parsed = parser::parse(input).expect("parsing failed");
         let expr = simplifier::simplify(*parsed).expect("simplification failed");
-        let typer = Typer::new();
-        typer.infer(expr)
+        let mut typer = Typer::new(default_prelude());
+        typer.type_check(expr)
+    }
+
+    fn default_prelude() -> Prelude {
+        Prelude(TypeClassEnv)
     }
 
     // TODO: make tests nicer to read
