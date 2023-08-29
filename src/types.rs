@@ -1,3 +1,4 @@
+use std::fmt;
 use crate::ast::Id;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -22,6 +23,17 @@ pub enum Type {
     // TODO: design arrows as a type application of (->) of kind * -> * -> *
     // (like typing haskell in haskell)
     Arrow(Box<Type>, Box<Type>),
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Type::Var(tyvar) => write!(f, "{}", tyvar.0),
+            Type::Con(tycon) => write!(f, "{}", tycon.0),
+            Type::App(t, u) => write!(f, "{} {}", t, u),
+            Type::Arrow(t, u) => write!(f, "{} -> {}", t, u),
+        }
+    }
 }
 
 impl HasKind for Type {
@@ -62,6 +74,13 @@ impl HasKind for TyCon {
 /// e.g.: "(Eq a, Eq b) => a -> b -> Bool"
 pub type QualType = Qual<Type>;
 
+impl fmt::Display for QualType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let preds = self.0.iter().map(|p| p.to_string()).collect::<Vec<_>>().join(", ");
+        write!(f, "{} => {}", preds, self.1)
+    }
+}
+
 /// Represents a type qualifier
 /// - A function type, e.g.: "(Eq a, Eq b) => a -> b -> Bool"
 /// - A type class definition, e.g.: "class Applicative m => Monad m where"
@@ -87,6 +106,12 @@ impl Pred {
     }
 }
 
+impl fmt::Display for Pred {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}", self.0, self.1)
+    }
+}
+
 pub mod prelude {
     use super::*;
 
@@ -95,7 +120,7 @@ pub mod prelude {
     }
 
     pub fn t_list() -> Type {
-        Type::Con(TyCon(Id::new("[]"), Kind::KFun(Box::new(Kind::Star), Box::new(Kind::Star))))
+        Type::Con(TyCon(Id::new("List"), Kind::KFun(Box::new(Kind::Star), Box::new(Kind::Star))))
     }
 
     fn list(t: Type) -> Type {
@@ -104,5 +129,26 @@ pub mod prelude {
 
     pub fn t_string() -> Type {
         list(t_char())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{*, prelude::*};
+
+    #[test]
+    fn test_display_prelude() {
+        assert_eq!(format!("{}", t_char()), "Char");
+        assert_eq!(format!("{}", t_list()), "List");
+        assert_eq!(format!("{}", t_string()), "List Char");
+    }
+
+    #[test]
+    fn test_display_qual_type() {
+        let ty_var = Type::Var(TyVar(Id::new("a"), Kind::Star));
+        let pred = Pred::new(Id::new("Num"), ty_var.clone());
+        let qual_type = Qual::new(vec![pred], ty_var);
+
+        assert_eq!(format!("{}", qual_type), "Num a => a");
     }
 }

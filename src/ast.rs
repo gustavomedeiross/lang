@@ -1,3 +1,4 @@
+use std::fmt;
 use crate::types::QualType;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -6,6 +7,12 @@ pub struct Id(String);
 impl Id {
     pub fn new(s: &str) -> Self {
         Id(s.to_owned())
+    }
+}
+
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
