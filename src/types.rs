@@ -53,7 +53,32 @@ impl HasKind for Type {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct TGen(usize);
+
+impl TGen {
+    pub fn initial() -> Self {
+        TGen(0)
+    }
+
+    pub fn next(self) -> Self {
+        TGen(self.0 + 1)
+    }
+
+    pub fn to_tyvar(&self, kind: Kind) -> TyVar {
+        TyVar::from_int(self.0, kind)
+    }
+}
+
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct TyVar(pub Id, pub Kind);
+
+impl TyVar {
+    pub fn from_int(int: usize, kind: Kind) -> Self {
+        let id = Id::new(&format!("t{}", int));
+        TyVar(id, kind)
+    }
+}
 
 impl HasKind for TyVar {
     fn kind(&self) -> Result<Kind, KindError> {

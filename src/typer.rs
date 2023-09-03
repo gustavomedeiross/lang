@@ -1,19 +1,21 @@
 use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
-    types::{prelude::t_string, Kind, Pred, Qual, QualType, TyVar, Type},
+    types::{prelude::t_string, Kind, Pred, Qual, QualType, TyVar, Type, TGen},
 };
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeError {}
 
 pub struct Typer {
-    type_env: TypeEnv,
+    gen_state: TGenState,
+    type_class_env: TypeClassEnv,
 }
 
 impl Typer {
     pub fn new(prelude: Prelude) -> Self {
         Self {
-            type_env: TypeEnv::new(prelude.0),
+            type_class_env: prelude.0,
+            gen_state: TGenState::initial_state(),
         }
     }
 }
@@ -23,21 +25,19 @@ pub struct Prelude(pub TypeClassEnv);
 
 pub struct TypeClassEnv;
 
-struct TypeEnv {
-    tyvar_state: TyVarState,
-    type_class_env: TypeClassEnv,
-}
+struct TGenState(TGen);
 
-impl TypeEnv {
-    fn new(class_env: TypeClassEnv) -> Self {
-        Self {
-            tyvar_state: TyVarState,
-            type_class_env: TypeClassEnv,
-        }
+impl TGenState {
+    pub fn initial_state() -> Self {
+        Self(TGen::initial())
+    }
+
+    pub fn gen_fresh(&mut self, kind: Kind) -> TyVar {
+        let curr = self.0.clone();
+        self.0 = curr.clone().next();
+        curr.to_tyvar(kind)
     }
 }
-
-struct TyVarState;
 
 struct Constraint(Type, Type);
 
@@ -52,7 +52,6 @@ impl Typer {
         Ok(typed_expr)
     }
 
-    // TODO: remove
     // update TypedExpr to be something that can have TGen values
     // in the middle of the expression (look at the definition of thio::quantify)
     fn infer(&mut self, expr: UntypedExpr) -> (TypedExpr, Vec<Constraint>) {
@@ -60,30 +59,29 @@ impl Typer {
         (typed_expr, vec![])
     }
 
+    fn unify(&mut self, _constraints: Vec<Constraint>) -> Subst {
+        Subst(vec![])
+    }
+
     fn infer_expr(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
         match expr {
             UntypedExpr::Var(id) => Ok(TypedExpr::Var(id)),
-            UntypedExpr::Lit(lit, ()) => Ok(infer_lit(lit)),
+            UntypedExpr::Lit(lit, ()) => Ok(self.infer_lit(lit)),
             UntypedExpr::App(_, _) => todo!(),
             UntypedExpr::Let(_, _, _, _) => todo!(),
             UntypedExpr::Lambda(_, _, _) => todo!(),
         }
     }
 
-    fn unify(&mut self, _constraints: Vec<Constraint>) -> Subst {
-        Subst(vec![])
-    }
-}
-
-fn infer_lit(lit: Literal) -> TypedExpr {
-    match lit {
-        Literal::Int(_) => {
-            // TODO: use tyvar generator, this implementation is wrong
-            let tvar = Type::Var(TyVar(Id::new("a"), Kind::Star));
-            let pred = Pred::new(Id::new("Num"), tvar.clone());
-            TypedExpr::Lit(lit.clone(), Qual::new(vec![pred], tvar))
+    fn infer_lit(&mut self, lit: Literal) -> TypedExpr {
+        match lit {
+            Literal::Int(_) => {
+                let tvar = Type::Var(self.gen_state.gen_fresh(Kind::Star));
+                let pred = Pred::new(Id::new("Num"), tvar.clone());
+                TypedExpr::Lit(lit.clone(), Qual::new(vec![pred], tvar))
+            }
+            Literal::Str(_) => TypedExpr::Lit(lit, QualType::new(vec![], t_string())),
         }
-        Literal::Str(_) => TypedExpr::Lit(lit, QualType::new(vec![], t_string())),
     }
 }
 
@@ -106,7 +104,7 @@ mod tests {
     #[test]
     fn test_literal_num() -> Result<(), TypeError> {
         let typed_expr = infer("1")?.stringify_types();
-        let qual_type = "Num a => a".to_owned();
+        let qual_type = "Num t0 => t0".to_owned();
         assert_eq!(typed_expr, Expr::Lit(Literal::Int(1), qual_type));
         Ok(())
     }
