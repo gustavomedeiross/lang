@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::ast::Id;
+use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Kind {
@@ -76,7 +76,16 @@ pub type QualType = Qual<Type>;
 
 impl fmt::Display for QualType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let preds = self.0.iter().map(|p| p.to_string()).collect::<Vec<_>>().join(", ");
+        let preds = self
+            .0
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        if preds.is_empty() {
+            return write!(f, "{}", self.1);
+        }
         write!(f, "{} => {}", preds, self.1)
     }
 }
@@ -120,7 +129,10 @@ pub mod prelude {
     }
 
     pub fn t_list() -> Type {
-        Type::Con(TyCon(Id::new("List"), Kind::KFun(Box::new(Kind::Star), Box::new(Kind::Star))))
+        Type::Con(TyCon(
+            Id::new("List"),
+            Kind::KFun(Box::new(Kind::Star), Box::new(Kind::Star)),
+        ))
     }
 
     fn list(t: Type) -> Type {
@@ -134,7 +146,7 @@ pub mod prelude {
 
 #[cfg(test)]
 mod test {
-    use super::{*, prelude::*};
+    use super::{prelude::*, *};
 
     #[test]
     fn test_display_prelude() {
@@ -150,5 +162,12 @@ mod test {
         let qual_type = Qual::new(vec![pred], ty_var);
 
         assert_eq!(format!("{}", qual_type), "Num a => a");
+    }
+
+    #[test]
+    fn test_display_qual_type_without_predicates() {
+        let qual_type = Qual::new(vec![], t_string());
+
+        assert_eq!(format!("{}", qual_type), "List Char");
     }
 }

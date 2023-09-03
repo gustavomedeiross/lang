@@ -1,6 +1,6 @@
 use crate::{
-    ast::{TypedExpr, UntypedExpr, Literal, Id},
-    types::{Type, Qual, Pred, Kind, TyVar, prelude::t_string, QualType},
+    ast::{Id, Literal, TypedExpr, UntypedExpr},
+    types::{prelude::t_string, Kind, Pred, Qual, QualType, TyVar, Type},
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -70,7 +70,6 @@ impl Typer {
         }
     }
 
-
     fn unify(&mut self, _constraints: Vec<Constraint>) -> Subst {
         Subst(vec![])
     }
@@ -83,17 +82,15 @@ fn infer_lit(lit: Literal) -> TypedExpr {
             let tvar = Type::Var(TyVar(Id::new("a"), Kind::Star));
             let pred = Pred::new(Id::new("Num"), tvar.clone());
             TypedExpr::Lit(lit.clone(), Qual::new(vec![pred], tvar))
-        },
-        Literal::Str(_) => {
-            TypedExpr::Lit(lit, QualType::new(vec![], t_string()))
-        },
+        }
+        Literal::Str(_) => TypedExpr::Lit(lit, QualType::new(vec![], t_string())),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{parser, simplifier};
+    use crate::{ast::Expr, parser, simplifier};
 
     fn infer(input: &str) -> Result<TypedExpr, TypeError> {
         let parsed = parser::parse(input).expect("parsing failed");
@@ -106,20 +103,22 @@ mod tests {
         Prelude(TypeClassEnv)
     }
 
-    // TODO: make tests nicer to read
     #[test]
-    fn test_literals() {
-        // Num a => a
-        let ty_var = Type::Var(TyVar(Id::new("a"), Kind::Star));
-        let pred = Pred::new(Id::new("Num"), ty_var.clone());
-        let qual_type = Qual::new(vec![pred], ty_var);
-        assert_eq!(infer("1"), Ok(TypedExpr::Lit(Literal::Int(1), qual_type)));
+    fn test_literal_num() -> Result<(), TypeError> {
+        let typed_expr = infer("1")?.stringify_types();
+        let qual_type = "Num a => a".to_owned();
+        assert_eq!(typed_expr, Expr::Lit(Literal::Int(1), qual_type));
+        Ok(())
+    }
 
-        // String
-        let qual_type = Qual::new(vec![], t_string());
+    #[test]
+    fn test_literal_string() -> Result<(), TypeError> {
+        let typed_expr = infer(r#""hello""#)?.stringify_types();
+        let qual_type = "List Char".to_owned();
         assert_eq!(
-            infer(r#""hello""#),
-            Ok(TypedExpr::Lit(Literal::Str(r#""hello""#.to_owned()), qual_type))
+            typed_expr,
+            Expr::Lit(Literal::Str(r#""hello""#.to_owned()), qual_type)
         );
+        Ok(())
     }
 }

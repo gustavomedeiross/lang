@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::types::QualType;
+use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Id(String);
@@ -37,9 +37,6 @@ pub enum ParsedExpr {
     Lambda(Args, Box<ParsedExpr>),
 }
 
-pub type UntypedExpr = Expr<()>;
-pub type TypedExpr = Expr<QualType>;
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<T> {
     // TODO: should Vars be annotated with types after typechecking?
@@ -48,4 +45,29 @@ pub enum Expr<T> {
     App(Box<Expr<T>>, Box<Expr<T>>),
     Let(Id, T, Box<Expr<T>>, Box<Expr<T>>),
     Lambda(Id, T, Box<Expr<T>>),
+}
+
+pub type UntypedExpr = Expr<()>;
+pub type TypedExpr = Expr<QualType>;
+
+impl TypedExpr {
+    pub fn stringify_types(self) -> Expr<String> {
+        match self {
+            Expr::Var(id) => Expr::Var(id),
+            Expr::Lit(lit, ty) => Expr::Lit(lit, ty.to_string()),
+            Expr::App(e1, e2) => Expr::App(
+                Box::new(e1.stringify_types()),
+                Box::new(e2.stringify_types()),
+            ),
+            Expr::Let(id, ty, e1, e2) => Expr::Let(
+                id,
+                ty.to_string(),
+                Box::new(e1.stringify_types()),
+                Box::new(e2.stringify_types()),
+            ),
+            Expr::Lambda(id, ty, e) => {
+                Expr::Lambda(id, ty.to_string(), Box::new(e.stringify_types()))
+            }
+        }
+    }
 }
