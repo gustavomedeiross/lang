@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
-    types::{prelude::t_string, Kind, Pred, Qual, QualType, TyVar, Type, TGen},
+    types::{prelude::t_string, Kind, Pred, Qual, QualType, TyVar, Type, TGen, Scheme, Subst},
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -12,8 +12,7 @@ pub enum TypeError {
 
 pub struct Typer {
     // TODO: probably should be a Map<TGen, QualType>
-    // TODO: should be a type scheme
-    var_env: HashMap<Id, QualType>,
+    var_env: HashMap<Id, Scheme>,
     gen_state: TGenState,
     type_class_env: TypeClassEnv,
 }
@@ -48,9 +47,6 @@ impl TGenState {
 }
 
 struct Constraint(Type, Type);
-
-// TODO: maybe remove `pub`
-struct Subst(pub Vec<(TyVar, Type)>);
 
 impl Typer {
     pub fn type_check(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
@@ -99,7 +95,7 @@ impl Typer {
         }
     }
 
-    fn instantiate(&mut self, scheme: QualType) -> QualType {
+    fn instantiate(&mut self, scheme: Scheme) -> QualType {
         todo!()
     }
 }

@@ -15,6 +15,17 @@ trait HasKind {
     fn kind(&self) -> Result<Kind, KindError>;
 }
 
+// TODO: maybe remove `pub`
+pub struct Subst(pub Vec<(TyVar, Type)>);
+
+trait Substitutes {
+    fn apply(self, subst: &Subst) -> Self;
+}
+
+trait HasFreeTypeVariables {
+    fn ftv(self) -> Vec<TyVar>;
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     Var(TyVar),
@@ -53,6 +64,39 @@ impl HasKind for Type {
             // we can safely assume that arrow expressions have kind "*"
             Type::Arrow(_, _) => Ok(Kind::Star),
             Type::Gen(_) => panic!("Type::Gen should not be used in typechecking"),
+        }
+    }
+}
+
+impl Substitutes for Type {
+    fn apply(self, subst: &Subst) -> Self {
+        match self {
+            Type::Var(ty_var) => {
+                subst.0
+                    .iter()
+                    .find(|(tyvar, _)| tyvar == &ty_var)
+                    .map(|(_, ty)| ty.clone())
+                    .unwrap_or_else(|| Type::Var(ty_var))
+            },
+            Type::App(l, r) | Type::Arrow(l, r) => Type::App(Box::new(l.apply(subst)), Box::new(r.apply(subst))),
+            _ => self
+        }
+    }
+}
+
+impl HasFreeTypeVariables for Type {
+    // this is definitely not the most efficient way to do this
+    // maybe a visitor with linked lists would be better
+    fn ftv(self) -> Vec<TyVar> {
+        match self {
+            Type::Var(ty_var) => vec![ty_var],
+            Type::App(l, r) | Type::Arrow(l, r) => {
+                let mut ftv_l = l.ftv();
+                let mut ftv_r = r.ftv();
+                ftv_l.append(&mut ftv_r);
+                ftv_l
+            },
+            Type::Con(_) | Type::Gen(_) => vec![],
         }
     }
 }
