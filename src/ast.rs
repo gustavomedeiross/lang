@@ -1,7 +1,7 @@
 use crate::types::QualType;
 use std::fmt;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Id(String);
 
 impl Id {
@@ -39,8 +39,7 @@ pub enum ParsedExpr {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<T> {
-    // TODO: should Vars be annotated with types after typechecking?
-    Var(Id),
+    Var(Id, T),
     Lit(Literal, T),
     App(Box<Expr<T>>, Box<Expr<T>>),
     Let(Id, T, Box<Expr<T>>, Box<Expr<T>>),
@@ -53,7 +52,7 @@ pub type TypedExpr = Expr<QualType>;
 impl TypedExpr {
     pub fn stringify_types(self) -> Expr<String> {
         match self {
-            Expr::Var(id) => Expr::Var(id),
+            Expr::Var(id, ty) => Expr::Var(id, ty.to_string()),
             Expr::Lit(lit, ty) => Expr::Lit(lit, ty.to_string()),
             Expr::App(e1, e2) => Expr::App(
                 Box::new(e1.stringify_types()),

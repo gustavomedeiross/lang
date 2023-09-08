@@ -23,6 +23,9 @@ pub enum Type {
     // TODO: design arrows as a type application of (->) of kind * -> * -> *
     // (like typing haskell in haskell)
     Arrow(Box<Type>, Box<Type>),
+    // TODO: we should have another variation of "Type"
+    // without "Gen"
+    Gen(TGen),
 }
 
 impl fmt::Display for Type {
@@ -32,6 +35,7 @@ impl fmt::Display for Type {
             Type::Con(tycon) => write!(f, "{}", tycon.0),
             Type::App(t, u) => write!(f, "{} {}", t, u),
             Type::Arrow(t, u) => write!(f, "{} -> {}", t, u),
+            Type::Gen(tgen) => write!(f, "TGen: {}", tgen.0),
         }
     }
 }
@@ -48,6 +52,7 @@ impl HasKind for Type {
             // as we don't allow partial application of arrows (e.g. "(->) Int" in Haskell),
             // we can safely assume that arrow expressions have kind "*"
             Type::Arrow(_, _) => Ok(Kind::Star),
+            Type::Gen(_) => panic!("Type::Gen should not be used in typechecking"),
         }
     }
 }

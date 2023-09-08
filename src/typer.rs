@@ -1,12 +1,19 @@
+use std::collections::HashMap;
+
 use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
     types::{prelude::t_string, Kind, Pred, Qual, QualType, TyVar, Type, TGen},
 };
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum TypeError {}
+pub enum TypeError {
+    UnboundVariable(Id),
+}
 
 pub struct Typer {
+    // TODO: probably should be a Map<TGen, QualType>
+    // TODO: should be a type scheme
+    var_env: HashMap<Id, QualType>,
     gen_state: TGenState,
     type_class_env: TypeClassEnv,
 }
@@ -14,6 +21,7 @@ pub struct Typer {
 impl Typer {
     pub fn new(prelude: Prelude) -> Self {
         Self {
+            var_env: HashMap::new(),
             type_class_env: prelude.0,
             gen_state: TGenState::initial_state(),
         }
@@ -46,7 +54,7 @@ struct Subst(pub Vec<(TyVar, Type)>);
 
 impl Typer {
     pub fn type_check(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
-        let (typed_expr, constraints) = self.infer(expr);
+        let (typed_expr, constraints) = self.infer(expr)?;
         let _subst = self.unify(constraints);
         // TODO: apply substitutions to typed_expr
         Ok(typed_expr)
@@ -54,9 +62,9 @@ impl Typer {
 
     // update TypedExpr to be something that can have TGen values
     // in the middle of the expression (look at the definition of thio::quantify)
-    fn infer(&mut self, expr: UntypedExpr) -> (TypedExpr, Vec<Constraint>) {
-        let typed_expr = self.infer_expr(expr).expect("type inference failed");
-        (typed_expr, vec![])
+    fn infer(&mut self, expr: UntypedExpr) -> Result<(TypedExpr, Vec<Constraint>), TypeError> {
+        let typed_expr = self.infer_expr(expr)?;
+        Ok((typed_expr, vec![]))
     }
 
     fn unify(&mut self, _constraints: Vec<Constraint>) -> Subst {
@@ -65,7 +73,14 @@ impl Typer {
 
     fn infer_expr(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
         match expr {
-            UntypedExpr::Var(id) => Ok(TypedExpr::Var(id)),
+            UntypedExpr::Var(id, _) => {
+                let scheme = self.var_env.get(&id)
+                    .ok_or_else(|| TypeError::UnboundVariable(id.clone()))?
+                    .clone();
+
+                let qual_type = self.instantiate(scheme);
+                Ok(TypedExpr::Var(id, qual_type))
+            },
             UntypedExpr::Lit(lit, ()) => Ok(self.infer_lit(lit)),
             UntypedExpr::App(_, _) => todo!(),
             UntypedExpr::Let(_, _, _, _) => todo!(),
@@ -82,6 +97,10 @@ impl Typer {
             }
             Literal::Str(_) => TypedExpr::Lit(lit, QualType::new(vec![], t_string())),
         }
+    }
+
+    fn instantiate(&mut self, scheme: QualType) -> QualType {
+        todo!()
     }
 }
 
@@ -116,6 +135,21 @@ mod tests {
         assert_eq!(
             typed_expr,
             Expr::Lit(Literal::Str(r#""hello""#.to_owned()), qual_type)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_lambda_identity() -> Result<(), TypeError> {
+        let typed_expr = infer("fun x -> x")?.stringify_types();
+        let qual_type = "t0 -> t0".to_owned();
+        assert_eq!(
+            typed_expr,
+            Expr::Lambda(
+                Id::new("x"),
+                "t0 -> t0".to_string(),
+                Box::new(Expr::Var(Id::new("x"), "t0".to_string()))
+            )
         );
         Ok(())
     }

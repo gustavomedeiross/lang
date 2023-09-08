@@ -5,7 +5,7 @@ pub enum SimplifierError {}
 
 pub fn simplify(parsed_expr: ParsedExpr) -> Result<UntypedExpr, SimplifierError> {
     match parsed_expr {
-        ParsedExpr::Var(id) => Ok(UntypedExpr::Var(id)),
+        ParsedExpr::Var(id) => Ok(UntypedExpr::Var(id, ())),
         ParsedExpr::Lit(lit) => Ok(UntypedExpr::Lit(lit, ())),
         ParsedExpr::App(e, es) => {
             let expr = simplify(*e)?;
@@ -50,7 +50,7 @@ mod tests {
                 Box::new(UntypedExpr::Lambda(
                     Id::new("c"),
                     (),
-                    Box::new(UntypedExpr::Var(Id::new("a"))),
+                    Box::new(UntypedExpr::Var(Id::new("a"), ())),
                 )),
             )),
         );
@@ -74,12 +74,12 @@ mod tests {
         let expected = UntypedExpr::App(
             Box::new(UntypedExpr::App(
                 Box::new(UntypedExpr::App(
-                    Box::new(UntypedExpr::Var(Id::new("f"))),
-                    Box::new(UntypedExpr::Var(Id::new("a"))),
+                    Box::new(UntypedExpr::Var(Id::new("f"), ())),
+                    Box::new(UntypedExpr::Var(Id::new("a"), ())),
                 )),
-                Box::new(UntypedExpr::Var(Id::new("b"))),
+                Box::new(UntypedExpr::Var(Id::new("b"), ())),
             )),
-            Box::new(UntypedExpr::Var(Id::new("c"))),
+            Box::new(UntypedExpr::Var(Id::new("c"), ())),
         );
 
         assert_eq!(simplify(parsed_expr), Ok(expected));
@@ -116,12 +116,12 @@ mod tests {
                 Box::new(UntypedExpr::Lambda(
                     Id::new("b"),
                     (),
-                    Box::new(UntypedExpr::Var(Id::new("a"))),
+                    Box::new(UntypedExpr::Var(Id::new("a"), ())),
                 )),
             )),
             Box::new(UntypedExpr::App(
                 Box::new(UntypedExpr::App(
-                    Box::new(UntypedExpr::Var(Id::new("f"))),
+                    Box::new(UntypedExpr::Var(Id::new("f"), ())),
                     Box::new(UntypedExpr::Lit(Literal::Int(1), ())),
                 )),
                 Box::new(UntypedExpr::Lit(Literal::Int(2), ())),
