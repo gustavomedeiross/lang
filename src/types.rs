@@ -57,6 +57,10 @@ impl HasKind for Type {
     }
 }
 
+// TODO: maybe should be something like `Scheme(Vec<(TGen, Kind)>, QualType)`
+#[derive(Debug, PartialEq, Clone)]
+pub struct Scheme(pub Vec<TyVar>, pub QualType);
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct TGen(usize);
 
