@@ -22,8 +22,20 @@ trait Substitutes {
     fn apply(self, subst: &Subst) -> Self;
 }
 
+impl<T: Substitutes> Substitutes for Vec<T> {
+    fn apply(self, subst: &Subst) -> Self {
+        self.into_iter().map(|t| t.apply(subst)).collect()
+    }
+}
+
 trait HasFreeTypeVariables {
     fn ftv(self) -> Vec<TyVar>;
+}
+
+impl<T: HasFreeTypeVariables> HasFreeTypeVariables for Vec<T> {
+    fn ftv(self) -> Vec<TyVar> {
+        self.into_iter().flat_map(|t| t.ftv()).collect()
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -100,10 +112,6 @@ impl HasFreeTypeVariables for Type {
         }
     }
 }
-
-// TODO: maybe should be something like `Scheme(Vec<(TGen, Kind)>, QualType)`
-#[derive(Debug, PartialEq, Clone)]
-pub struct Scheme(pub Vec<TyVar>, pub QualType);
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TGen(usize);
@@ -183,6 +191,23 @@ impl<T> Qual<T> {
     }
 }
 
+impl<T: Substitutes> Substitutes for Qual<T> {
+    fn apply(self, subst: &Subst) -> Self {
+        let preds = self.0.apply(subst);
+        let ty = self.1.apply(subst);
+        Qual(preds, ty)
+    }
+}
+
+impl<T: HasFreeTypeVariables> HasFreeTypeVariables for Qual<T> {
+    fn ftv(self) -> Vec<TyVar> {
+        let mut ftv_preds = self.0.ftv();
+        let mut ftv_ty = self.1.ftv();
+        ftv_preds.append(&mut ftv_ty);
+        ftv_preds
+    }
+}
+
 /// Represents a predicate, e.g.: "Eq a"
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pred(Id, Type);
@@ -193,9 +218,43 @@ impl Pred {
     }
 }
 
+impl Substitutes for Pred {
+    fn apply(self, subst: &Subst) -> Self {
+        let ty = self.1.apply(subst);
+        Pred(self.0, ty)
+    }
+}
+
+impl HasFreeTypeVariables for Pred {
+    fn ftv(self) -> Vec<TyVar> {
+        self.1.ftv()
+    }
+}
+
 impl fmt::Display for Pred {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.0, self.1)
+    }
+}
+
+
+// TODO: maybe should be something like `Scheme(Vec<(TGen, Kind)>, QualType)`
+#[derive(Debug, PartialEq, Clone)]
+pub struct Scheme(pub Vec<TyVar>, pub QualType);
+
+impl Substitutes for Scheme {
+    fn apply(self, subst: &Subst) -> Self {
+        Scheme(self.0, self.1.apply(subst))
+    }
+}
+
+impl HasFreeTypeVariables for Scheme {
+    fn ftv(self) -> Vec<TyVar> {
+        let quantified_vars = self.0;
+        let vars_in_expr = self.1.ftv();
+        // diff between vars in expr and quantified vars
+        // e.g: (forall a b . a -> b -> c) => [c]
+        vars_in_expr.into_iter().filter(|tyvar| !quantified_vars.contains(tyvar)).collect()
     }
 }
 
