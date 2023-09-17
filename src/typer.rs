@@ -2,12 +2,16 @@ use std::collections::HashMap;
 
 use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
-    types::{prelude::t_string, Kind, Pred, Qual, QualType, TyVar, Type, TGen, Scheme, Subst},
+    types::{
+        prelude::t_string, HasKind, Kind, KindError, Pred, Qual, QualType, Scheme, Subst,
+        Substitutes, TGen, TyVar, Type,
+    },
 };
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeError {
     UnboundVariable(Id),
+    KindError(KindError),
 }
 
 pub struct Typer {
@@ -70,13 +74,15 @@ impl Typer {
     fn infer_expr(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
         match expr {
             UntypedExpr::Var(id, _) => {
-                let scheme = self.var_env.get(&id)
+                let scheme = self
+                    .var_env
+                    .get(&id)
                     .ok_or_else(|| TypeError::UnboundVariable(id.clone()))?
                     .clone();
 
-                let qual_type = self.instantiate(scheme);
+                let qual_type = self.instantiate(scheme)?;
                 Ok(TypedExpr::Var(id, qual_type))
-            },
+            }
             UntypedExpr::Lit(lit, ()) => Ok(self.infer_lit(lit)),
             UntypedExpr::App(_, _) => todo!(),
             UntypedExpr::Let(_, _, _, _) => todo!(),
@@ -95,8 +101,21 @@ impl Typer {
         }
     }
 
-    fn instantiate(&mut self, scheme: Scheme) -> QualType {
-        todo!()
+    /// instantiates all quantified variables in a scheme with fresh type variables
+    fn instantiate(&mut self, scheme: Scheme) -> Result<QualType, TypeError> {
+        let Scheme(vars, ty) = scheme;
+
+        let substitutions = vars
+            .into_iter()
+            .map(|var| {
+                let fresh = self.gen_state.gen_fresh(var.kind()?);
+                Ok((var, Type::Var(fresh)))
+            })
+            .collect::<Result<Vec<_>, KindError>>()
+            .map(Subst)
+            .map_err(TypeError::KindError)?;
+
+        Ok(ty.apply(&substitutions))
     }
 }
 

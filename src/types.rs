@@ -7,18 +7,19 @@ pub enum Kind {
     KFun(Box<Kind>, Box<Kind>),
 }
 
-enum KindError {
+#[derive(Debug, PartialEq, Clone)]
+pub enum KindError {
     KindMismatch,
 }
 
-trait HasKind {
+pub trait HasKind {
     fn kind(&self) -> Result<Kind, KindError>;
 }
 
 // TODO: maybe remove `pub`
 pub struct Subst(pub Vec<(TyVar, Type)>);
 
-trait Substitutes {
+pub trait Substitutes {
     fn apply(self, subst: &Subst) -> Self;
 }
 
@@ -28,7 +29,7 @@ impl<T: Substitutes> Substitutes for Vec<T> {
     }
 }
 
-trait HasFreeTypeVariables {
+pub trait HasFreeTypeVariables {
     fn ftv(self) -> Vec<TyVar>;
 }
 
@@ -83,15 +84,16 @@ impl HasKind for Type {
 impl Substitutes for Type {
     fn apply(self, subst: &Subst) -> Self {
         match self {
-            Type::Var(ty_var) => {
-                subst.0
-                    .iter()
-                    .find(|(tyvar, _)| tyvar == &ty_var)
-                    .map(|(_, ty)| ty.clone())
-                    .unwrap_or_else(|| Type::Var(ty_var))
-            },
-            Type::App(l, r) | Type::Arrow(l, r) => Type::App(Box::new(l.apply(subst)), Box::new(r.apply(subst))),
-            _ => self
+            Type::Var(ty_var) => subst
+                .0
+                .iter()
+                .find(|(tyvar, _)| tyvar == &ty_var)
+                .map(|(_, ty)| ty.clone())
+                .unwrap_or_else(|| Type::Var(ty_var)),
+            Type::App(l, r) | Type::Arrow(l, r) => {
+                Type::App(Box::new(l.apply(subst)), Box::new(r.apply(subst)))
+            }
+            _ => self,
         }
     }
 }
@@ -107,12 +109,13 @@ impl HasFreeTypeVariables for Type {
                 let mut ftv_r = r.ftv();
                 ftv_l.append(&mut ftv_r);
                 ftv_l
-            },
+            }
             Type::Con(_) | Type::Gen(_) => vec![],
         }
     }
 }
 
+// TODO: should probably hold a kind as well
 #[derive(Debug, PartialEq, Clone)]
 pub struct TGen(usize);
 
@@ -129,7 +132,6 @@ impl TGen {
         TyVar::from_int(self.0, kind)
     }
 }
-
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TyVar(pub Id, pub Kind);
@@ -237,7 +239,6 @@ impl fmt::Display for Pred {
     }
 }
 
-
 // TODO: maybe should be something like `Scheme(Vec<(TGen, Kind)>, QualType)`
 #[derive(Debug, PartialEq, Clone)]
 pub struct Scheme(pub Vec<TyVar>, pub QualType);
@@ -254,7 +255,10 @@ impl HasFreeTypeVariables for Scheme {
         let vars_in_expr = self.1.ftv();
         // diff between vars in expr and quantified vars
         // e.g: (forall a b . a -> b -> c) => [c]
-        vars_in_expr.into_iter().filter(|tyvar| !quantified_vars.contains(tyvar)).collect()
+        vars_in_expr
+            .into_iter()
+            .filter(|tyvar| !quantified_vars.contains(tyvar))
+            .collect()
     }
 }
 
