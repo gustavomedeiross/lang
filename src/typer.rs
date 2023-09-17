@@ -50,7 +50,14 @@ impl TGenState {
     }
 }
 
-struct Constraint(Type, Type);
+
+struct Constraints(Vec<(QualType, QualType)>);
+
+impl Constraints {
+    fn empty() -> Self {
+        Self(vec![])
+    }
+}
 
 impl Typer {
     pub fn type_check(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
@@ -62,16 +69,7 @@ impl Typer {
 
     // update TypedExpr to be something that can have TGen values
     // in the middle of the expression (look at the definition of thio::quantify)
-    fn infer(&mut self, expr: UntypedExpr) -> Result<(TypedExpr, Vec<Constraint>), TypeError> {
-        let typed_expr = self.infer_expr(expr)?;
-        Ok((typed_expr, vec![]))
-    }
-
-    fn unify(&mut self, _constraints: Vec<Constraint>) -> Subst {
-        Subst(vec![])
-    }
-
-    fn infer_expr(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
+    fn infer(&mut self, expr: UntypedExpr) -> Result<(TypedExpr, Constraints), TypeError> {
         match expr {
             UntypedExpr::Var(id, _) => {
                 let scheme = self
@@ -81,7 +79,7 @@ impl Typer {
                     .clone();
 
                 let qual_type = self.instantiate(scheme)?;
-                Ok(TypedExpr::Var(id, qual_type))
+                Ok((TypedExpr::Var(id, qual_type), Constraints::empty()))
             }
             UntypedExpr::Lit(lit, ()) => Ok(self.infer_lit(lit)),
             UntypedExpr::App(_, _) => todo!(),
@@ -94,25 +92,26 @@ impl Typer {
                 let param_qual_type = QualType::new(vec![], param_tyvar.clone());
                 self.var_env.insert(param.clone(), Self::dont_generalize(param_qual_type));
 
-                let typed_body_expr = self.infer_expr(*body_expr)?;
+                let (typed_body_expr, constraints) = self.infer(*body_expr)?;
                 let body_qual_type = typed_body_expr.clone().get_type();
                 let body_ty = body_qual_type.clone().ty();
                 let body_preds = body_qual_type.preds();
 
                 let arrow_ty = QualType::new(body_preds, Type::Arrow(Box::new(param_tyvar), Box::new(body_ty)));
-                Ok(TypedExpr::Lambda(param, arrow_ty, Box::new(typed_body_expr)))
+                let lambda_typed_expr = TypedExpr::Lambda(param, arrow_ty, Box::new(typed_body_expr));
+                Ok((lambda_typed_expr, constraints))
             },
         }
     }
 
-    fn infer_lit(&mut self, lit: Literal) -> TypedExpr {
+    fn infer_lit(&mut self, lit: Literal) -> (TypedExpr, Constraints) {
         match lit {
             Literal::Int(_) => {
                 let tvar = Type::Var(self.gen_state.gen_fresh(Kind::Star));
                 let pred = Pred::new(Id::new("Num"), tvar.clone());
-                TypedExpr::Lit(lit.clone(), Qual::new(vec![pred], tvar))
+                (TypedExpr::Lit(lit, Qual::new(vec![pred], tvar)), Constraints::empty())
             }
-            Literal::Str(_) => TypedExpr::Lit(lit, QualType::new(vec![], t_string())),
+            Literal::Str(_) => (TypedExpr::Lit(lit, QualType::new(vec![], t_string())), Constraints::empty()),
         }
     }
 
@@ -136,6 +135,10 @@ impl Typer {
             .map_err(TypeError::KindError)?;
 
         Ok(ty.apply(&substitutions))
+    }
+
+    fn unify(&mut self, _constraints: Constraints) -> Subst {
+        Subst(vec![])
     }
 }
 
