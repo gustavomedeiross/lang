@@ -178,6 +178,12 @@ impl fmt::Display for QualType {
     }
 }
 
+impl QualType {
+    pub fn ty(self) -> Type {
+        self.1
+    }
+}
+
 /// Represents a type qualifier
 /// - A function type, e.g.: "(Eq a, Eq b) => a -> b -> Bool"
 /// - A type class definition, e.g.: "class Applicative m => Monad m where"
@@ -190,6 +196,10 @@ pub struct Qual<T>(Vec<Pred>, T);
 impl<T> Qual<T> {
     pub fn new(preds: Vec<Pred>, t: T) -> Self {
         Qual(preds, t)
+    }
+
+    pub fn preds(self) -> Vec<Pred> {
+        self.0
     }
 }
 

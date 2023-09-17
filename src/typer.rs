@@ -86,7 +86,22 @@ impl Typer {
             UntypedExpr::Lit(lit, ()) => Ok(self.infer_lit(lit)),
             UntypedExpr::App(_, _) => todo!(),
             UntypedExpr::Let(_, _, _, _) => todo!(),
-            UntypedExpr::Lambda(_, _, _) => todo!(),
+            // TODO: it's still possible that we have bugs here:
+            // - we're always creating param_tyvar with kind Star
+            // - the param_qual_type is also created without any predicates
+            UntypedExpr::Lambda(param, (), body_expr) => {
+                let param_tyvar = Type::Var(self.gen_state.gen_fresh(Kind::Star));
+                let param_qual_type = QualType::new(vec![], param_tyvar.clone());
+                self.var_env.insert(param.clone(), Self::dont_generalize(param_qual_type));
+
+                let typed_body_expr = self.infer_expr(*body_expr)?;
+                let body_qual_type = typed_body_expr.clone().get_type();
+                let body_ty = body_qual_type.clone().ty();
+                let body_preds = body_qual_type.preds();
+
+                let arrow_ty = QualType::new(body_preds, Type::Arrow(Box::new(param_tyvar), Box::new(body_ty)));
+                Ok(TypedExpr::Lambda(param, arrow_ty, Box::new(typed_body_expr)))
+            },
         }
     }
 
@@ -99,6 +114,11 @@ impl Typer {
             }
             Literal::Str(_) => TypedExpr::Lit(lit, QualType::new(vec![], t_string())),
         }
+    }
+
+    /// don't generalize a type, just return it as a scheme
+    fn dont_generalize(qual_type: QualType) -> Scheme {
+        Scheme(vec![], qual_type)
     }
 
     /// instantiates all quantified variables in a scheme with fresh type variables
@@ -168,4 +188,7 @@ mod tests {
         );
         Ok(())
     }
+
+    // TODO: test
+    // x -> y -> y + y `yields` Num t1 => t0 -> t1 -> t1
 }

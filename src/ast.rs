@@ -50,6 +50,16 @@ pub type UntypedExpr = Expr<()>;
 pub type TypedExpr = Expr<QualType>;
 
 impl TypedExpr {
+    pub fn get_type(self) -> QualType {
+        match self {
+            Expr::Var(_, ty) => ty,
+            Expr::Lit(_, ty) => ty,
+            Expr::App(_, _) => todo!(),
+            Expr::Let(_, _, _, _) => todo!(),
+            Expr::Lambda(_, ty, _) => ty,
+        }
+    }
+
     pub fn stringify_types(self) -> Expr<String> {
         match self {
             Expr::Var(id, ty) => Expr::Var(id, ty.to_string()),
