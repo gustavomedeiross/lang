@@ -41,7 +41,7 @@ pub enum ParsedExpr {
 pub enum Expr<T> {
     Var(Id, T),
     Lit(Literal, T),
-    App(Box<Expr<T>>, Box<Expr<T>>),
+    App(Box<Expr<T>>, Box<Expr<T>>, T),
     Let(Id, T, Box<Expr<T>>, Box<Expr<T>>),
     Lambda(Id, T, Box<Expr<T>>),
 }
@@ -54,8 +54,8 @@ impl TypedExpr {
         match self {
             Expr::Var(_, ty) => ty,
             Expr::Lit(_, ty) => ty,
-            Expr::App(_, _) => todo!(),
-            Expr::Let(_, _, _, _) => todo!(),
+            Expr::App(_, _, ty) => ty,
+            Expr::Let(_, ty, _, _) => ty,
             Expr::Lambda(_, ty, _) => ty,
         }
     }
@@ -64,9 +64,10 @@ impl TypedExpr {
         match self {
             Expr::Var(id, ty) => Expr::Var(id, ty.to_string()),
             Expr::Lit(lit, ty) => Expr::Lit(lit, ty.to_string()),
-            Expr::App(e1, e2) => Expr::App(
+            Expr::App(e1, e2, ty) => Expr::App(
                 Box::new(e1.stringify_types()),
                 Box::new(e2.stringify_types()),
+                ty.to_string(),
             ),
             Expr::Let(id, ty, e1, e2) => Expr::Let(
                 id,
