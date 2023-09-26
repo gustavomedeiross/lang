@@ -17,6 +17,7 @@ pub trait HasKind {
 }
 
 // TODO: maybe remove `pub`
+#[derive(Debug, PartialEq, Clone)]
 pub struct Subst(pub Vec<(TyVar, Type)>);
 
 pub trait Substitutes {
@@ -90,9 +91,10 @@ impl Substitutes for Type {
                 .find(|(tyvar, _)| tyvar == &ty_var)
                 .map(|(_, ty)| ty.clone())
                 .unwrap_or_else(|| Type::Var(ty_var)),
-            Type::App(l, r) | Type::Arrow(l, r) => {
-                Type::App(Box::new(l.apply(subst)), Box::new(r.apply(subst)))
-            }
+            Type::App(l, r) =>
+                Type::App(Box::new(l.apply(subst)), Box::new(r.apply(subst))),
+            Type::Arrow(l, r) =>
+                Type::Arrow(Box::new(l.apply(subst)), Box::new(r.apply(subst))),
             _ => self,
         }
     }
