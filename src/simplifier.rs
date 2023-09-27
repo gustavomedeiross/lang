@@ -76,13 +76,13 @@ mod tests {
                 Box::new(UntypedExpr::App(
                     Box::new(UntypedExpr::Var(Id::new("f"), ())),
                     Box::new(UntypedExpr::Var(Id::new("a"), ())),
-                    ()
+                    (),
                 )),
                 Box::new(UntypedExpr::Var(Id::new("b"), ())),
                 (),
             )),
             Box::new(UntypedExpr::Var(Id::new("c"), ())),
-            ()
+            (),
         );
 
         assert_eq!(simplify(parsed_expr), Ok(expected));

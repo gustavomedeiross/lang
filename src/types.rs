@@ -20,6 +20,31 @@ pub trait HasKind {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Subst(pub Vec<(TyVar, Type)>);
 
+impl Subst {
+    pub fn null() -> Self {
+        Subst(vec![])
+    }
+
+    pub fn bind(tyvar: TyVar, ty: Type) -> Self {
+        Subst(vec![(tyvar, ty)])
+    }
+
+    pub fn compose(self, other: Subst) -> Self {
+        let mut subst = self.0;
+        subst.extend(other.0);
+        Subst(subst)
+    }
+
+    pub fn merge(substs: Vec<Subst>) -> Self {
+        let subst = substs
+            .into_iter()
+            .map(|s| s.0)
+            .flatten()
+            .collect::<Vec<_>>();
+        Subst(subst)
+    }
+}
+
 pub trait Substitutes {
     fn apply(self, subst: &Subst) -> Self;
 }
@@ -91,10 +116,8 @@ impl Substitutes for Type {
                 .find(|(tyvar, _)| tyvar == &ty_var)
                 .map(|(_, ty)| ty.clone())
                 .unwrap_or_else(|| Type::Var(ty_var)),
-            Type::App(l, r) =>
-                Type::App(Box::new(l.apply(subst)), Box::new(r.apply(subst))),
-            Type::Arrow(l, r) =>
-                Type::Arrow(Box::new(l.apply(subst)), Box::new(r.apply(subst))),
+            Type::App(l, r) => Type::App(Box::new(l.apply(subst)), Box::new(r.apply(subst))),
+            Type::Arrow(l, r) => Type::Arrow(Box::new(l.apply(subst)), Box::new(r.apply(subst))),
             _ => self,
         }
     }

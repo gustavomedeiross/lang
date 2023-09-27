@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
     types::{
-        prelude::t_string, HasKind, Kind, KindError, Pred, Qual, QualType, Scheme, Subst,
-        Substitutes, TGen, TyVar, Type,
+        prelude::t_string, HasFreeTypeVariables, HasKind, Kind, KindError, Pred, Qual, QualType,
+        Scheme, Subst, Substitutes, TGen, TyVar, Type,
     },
 };
 
@@ -12,6 +12,8 @@ use crate::{
 pub enum TypeError {
     UnboundVariable(Id),
     KindError(KindError),
+    UnificationError(Type, Type),
+    OccursCheckFails(TyVar, Type),
 }
 
 pub struct Typer {
@@ -57,33 +59,24 @@ impl TGenState {
     }
 }
 
-struct Constraints(Vec<(QualType, QualType)>);
+struct Constraint(Type, Type);
 
-impl Constraints {
-    fn empty() -> Self {
-        Self(vec![])
-    }
-
-    fn new(lhs: QualType, rhs: QualType) -> Self {
-        Self(vec![(lhs, rhs)])
-    }
-
-    fn combine(&mut self, other: Constraints) {
-        other.0.into_iter().for_each(|constraint| self.0.push(constraint));
+impl Constraint {
+    fn new(lhs: Type, rhs: Type) -> Self {
+        Self(lhs, rhs)
     }
 }
 
 impl Typer {
     pub fn type_check(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
         let (typed_expr, constraints) = self.infer(expr)?;
-        let _subst = self.unify(constraints);
-        // TODO: apply substitutions to typed_expr
-        Ok(typed_expr)
+        let subst = self.unify(constraints)?;
+        Ok(typed_expr.apply(&subst))
     }
 
     // update TypedExpr to be something that can have TGen values
     // in the middle of the expression (look at the definition of thio::quantify)
-    fn infer(&mut self, expr: UntypedExpr) -> Result<(TypedExpr, Constraints), TypeError> {
+    fn infer(&mut self, expr: UntypedExpr) -> Result<(TypedExpr, Vec<Constraint>), TypeError> {
         match expr {
             UntypedExpr::Var(id, _) => {
                 let scheme = self
@@ -93,32 +86,31 @@ impl Typer {
                     .clone();
 
                 let qual_type = self.instantiate(scheme)?;
-                Ok((TypedExpr::Var(id, qual_type), Constraints::empty()))
+                Ok((TypedExpr::Var(id, qual_type), vec![]))
             }
             UntypedExpr::Lit(lit, ()) => Ok(self.infer_lit(lit)),
             UntypedExpr::App(fn_expr, arg_expr, ()) => {
-                let (typed_fn_expr, fn_constraints) = self.infer(*fn_expr)?;
-                let (typed_arg_expr, arg_constraints) = self.infer(*arg_expr)?;
+                let (typed_fn_expr, mut fn_constraints) = self.infer(*fn_expr)?;
+                let (typed_arg_expr, mut arg_constraints) = self.infer(*arg_expr)?;
                 // TODO: I believe the kind here is correct, just double check later
                 let tyvar = Type::Var(self.gen_state.gen_fresh(Kind::Star));
                 let fn_qual_type = typed_fn_expr.clone().get_type();
                 let arg_qual_type = typed_arg_expr.clone().get_type();
 
-                let mut app_constraints = Constraints::new(
-                    fn_qual_type.clone(),
-                    QualType::new(
-                        // TODO: I believe this is correct
-                        // double check later when we have the constraint solving in place
-                        arg_qual_type.clone().preds(),
-                        Type::Arrow(
-                            Box::new(arg_qual_type.clone().ty()),
-                            Box::new(tyvar.clone()),
-                        ),
+                // TODO: double check if we really don't need to have the predicates
+                // on the the constraint here
+                let app_constraint = Constraint(
+                    fn_qual_type.clone().ty(),
+                    Type::Arrow(
+                        Box::new(arg_qual_type.clone().ty()),
+                        Box::new(tyvar.clone()),
                     ),
                 );
 
-                app_constraints.combine(fn_constraints);
-                app_constraints.combine(arg_constraints);
+                let mut constraints = vec![];
+                constraints.push(app_constraint);
+                constraints.append(&mut fn_constraints);
+                constraints.append(&mut arg_constraints);
 
                 let mut preds = fn_qual_type.preds();
                 preds.append(&mut arg_qual_type.preds());
@@ -127,9 +119,10 @@ impl Typer {
                 // when we have the constraint solving in place
                 let qual_type = QualType::new(preds, tyvar);
 
-                let typed_expr = TypedExpr::App(Box::new(typed_fn_expr), Box::new(typed_arg_expr), qual_type);
-                Ok((typed_expr, app_constraints))
-            },
+                let typed_expr =
+                    TypedExpr::App(Box::new(typed_fn_expr), Box::new(typed_arg_expr), qual_type);
+                Ok((typed_expr, constraints))
+            }
             UntypedExpr::Let(_, _, _, _) => todo!(),
             // TODO: it's still possible that we have bugs here:
             // - we're always creating param_tyvar with kind Star
@@ -156,19 +149,17 @@ impl Typer {
         }
     }
 
-    fn infer_lit(&mut self, lit: Literal) -> (TypedExpr, Constraints) {
+    fn infer_lit(&mut self, lit: Literal) -> (TypedExpr, Vec<Constraint>) {
         match lit {
             Literal::Int(_) => {
                 let tvar = Type::Var(self.gen_state.gen_fresh(Kind::Star));
                 let pred = Pred::new(Id::new("Num"), tvar.clone());
-                (
-                    TypedExpr::Lit(lit, Qual::new(vec![pred], tvar)),
-                    Constraints::empty(),
-                )
+                let expr = TypedExpr::Lit(lit, Qual::new(vec![pred], tvar));
+                (expr, vec![])
             }
             Literal::Str(_) => (
                 TypedExpr::Lit(lit, QualType::new(vec![], t_string())),
-                Constraints::empty(),
+                vec![],
             ),
         }
     }
@@ -195,15 +186,56 @@ impl Typer {
         Ok(ty.apply(&substitutions))
     }
 
-    fn unify(&mut self, _constraints: Constraints) -> Subst {
-        Subst(vec![])
+    fn unify(&mut self, constraints: Vec<Constraint>) -> Result<Subst, TypeError> {
+        let substs = constraints
+            .into_iter()
+            .map(|constr| Unifier::mgu(constr))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Subst::merge(substs))
+    }
+}
+
+struct Unifier;
+
+impl Unifier {
+    pub fn mgu(constr: Constraint) -> Result<Subst, TypeError> {
+        match constr {
+            Constraint(Type::App(l1, r1), Type::App(l2, r2)) => {
+                let s1 = Self::mgu(Constraint(*l1, *l2))?;
+                let s2 = Self::mgu(Constraint(*r1, *r2))?;
+                Ok(s1.compose(s2))
+            }
+            Constraint(Type::Arrow(l1, r1), Type::Arrow(l2, r2)) => {
+                let s1 = Self::mgu(Constraint(*l1, *l2))?;
+                let s2 = Self::mgu(Constraint(*r1, *r2))?;
+                Ok(s1.compose(s2))
+            }
+            Constraint(Type::Var(tyvar), ty) | Constraint(ty, Type::Var(tyvar)) => {
+                Self::var_bind(tyvar, ty)
+            }
+            Constraint(Type::Con(tycon1), Type::Con(tycon2)) if tycon1 == tycon2 => {
+                Ok(Subst::null())
+            }
+            Constraint(t1, t2) => Err(TypeError::UnificationError(t1, t2)),
+        }
+    }
+
+    fn var_bind(tyvar: TyVar, ty: Type) -> Result<Subst, TypeError> {
+        match ty {
+            ty if ty == (Type::Var(tyvar.clone())) => Ok(Subst::null()),
+            ty if ty.clone().ftv().contains(&tyvar) => Err(TypeError::OccursCheckFails(tyvar, ty)),
+            ty if ty.kind() != tyvar.kind() => Err(TypeError::KindError(KindError::KindMismatch)),
+
+            _ => Ok(Subst::bind(tyvar, ty)),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ast::Expr, parser, simplifier};
+    use crate::{ast::Expr, parser, simplifier, types::TyCon};
 
     fn infer(input: &str) -> Result<TypedExpr, TypeError> {
         let parsed = parser::parse(input).expect("parsing failed");
@@ -220,13 +252,13 @@ mod tests {
             Scheme(
                 vec![TyVar(Id::new("a"), Kind::Star)],
                 QualType::new(
-                    vec![Pred::new(Id::new("Show"), Type::Var(TyVar(
-                        Id::new("a"),
-                        Kind::Star,
-                    )))],
+                    vec![Pred::new(
+                        Id::new("Show"),
+                        Type::Var(TyVar(Id::new("a"), Kind::Star)),
+                    )],
                     Type::Var(TyVar(Id::new("a"), Kind::Star)),
                 ),
-            )
+            ),
         );
 
         // increment : Int -> Int
@@ -237,8 +269,8 @@ mod tests {
                 QualType::new(
                     vec![],
                     Type::Arrow(
-                        Box::new(Type::Var(TyVar(Id::new("Int"), Kind::Star))),
-                        Box::new(Type::Var(TyVar(Id::new("Int"), Kind::Star))),
+                        Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                        Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
                     ),
                 ),
             ),
