@@ -246,7 +246,7 @@ mod tests {
 
     // TODO: refactor this
     fn default_prelude() -> Prelude {
-        // show : forall a . Show a => String
+        // show : forall a . Show a => a -> String
         let show_assump = Assumption(
             Id::new("show"),
             Scheme(
@@ -256,7 +256,10 @@ mod tests {
                         Id::new("Show"),
                         Type::Var(TyVar(Id::new("a"), Kind::Star)),
                     )],
-                    Type::Var(TyVar(Id::new("a"), Kind::Star)),
+                    Type::Arrow(
+                        Box::new(Type::Var(TyVar(Id::new("a"), Kind::Star))),
+                        Box::new(Type::Con(TyCon(Id::new("String"), Kind::Star))),
+                    ),
                 ),
             ),
         );
@@ -331,7 +334,26 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_lambda_with_application_of_qual_type() -> Result<(), TypeError> {
+        let typed_expr = infer("fun x -> show x")?.stringify_types();
+        assert_eq!(
+            typed_expr,
+            Expr::Lambda(
+                Id::new("x"),
+                "Show t0 => t0 -> String".into(),
+                Box::new(Expr::App(
+                    Box::new(Expr::Var(Id::new("show"), "Show t0 => t0 -> String".into())),
+                    // TODO: should this have "Show a" or not?
+                    Box::new(Expr::Var(Id::new("x"), "Show t0 => t0".into())),
+                    "String".into(),
+                ))
+            )
+        );
+
+        Ok(())
+    }
+
     // TODO: test
-    //  fun x -> show x `yields` Show t0 => t0 -> String
     // x -> y -> y + y `yields` Num t1 => t0 -> t1 -> t1
 }
