@@ -345,6 +345,9 @@ mod tests {
                 Box::new(Expr::App(
                     Box::new(Expr::Var(Id::new("show"), "Show t0 => t0 -> String".into())),
                     // TODO: should this have "Show a" or not?
+                    // it's not strictly required, as this structure is only going to be used for coge generation
+                    // so whatever works best, if we prefer to remove the "Show" predicate (from the Expr::Var)
+                    // we can do that.
                     Box::new(Expr::Var(Id::new("x"), "Show t0 => t0".into())),
                     "String".into(),
                 ))
@@ -353,6 +356,19 @@ mod tests {
 
         Ok(())
     }
+
+    // -- READ HERE --
+    //
+    // CONCLUSIONS SO FAR:
+    //
+    // Basically, there's (at least) two ways to implement this
+    //
+    // 1. Constraints have the type (QualType, QualType) --> think about how to solve the problem of
+    // when something is too general or good, e.g. passing Int to a function that expects "Show a" is ok,
+    // but passing "Show a" to a function that expects "Int" is not ok. If we just do a simple "constraint" between
+    // "Show a" and "Int", we don't know if we're in the first or the second scenario
+    //
+    // 2. Using the assumptions env to hold the type class predicates for a given type variable
 
     // TODO: test
     // x -> y -> y + y `yields` Num t1 => t0 -> t1 -> t1
