@@ -357,19 +357,14 @@ mod tests {
         Ok(())
     }
 
-    // -- READ HERE --
-    //
-    // CONCLUSIONS SO FAR:
-    //
-    // Basically, there's (at least) two ways to implement this
-    //
-    // 1. Constraints have the type (QualType, QualType) --> think about how to solve the problem of
-    // when something is too general or good, e.g. passing Int to a function that expects "Show a" is ok,
-    // but passing "Show a" to a function that expects "Int" is not ok. If we just do a simple "constraint" between
-    // "Show a" and "Int", we don't know if we're in the first or the second scenario
-    //
-    // 2. Using the assumptions env to hold the type class predicates for a given type variable
-
     // TODO: test
-    // x -> y -> y + y `yields` Num t1 => t0 -> t1 -> t1
+    //
+    // "x -> y -> y + y" `yields` Num t1 => t0 -> t1 -> t1
+    //
+    // "let f x = show x in f" `yields` Show a => a -> String
+    //
+    // "show(true)" `yields` missing typeclass instance: Show(bool)
+    //
+    // "let f x = show x in f true" `yields` "missing typeclass instance: Show(bool)
+    //
 }
