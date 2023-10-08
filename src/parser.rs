@@ -200,7 +200,6 @@ mod type_expr_tests {
         );
     }
 
-    // TODO:
     #[test]
     fn test_type_scheme() {
         assert_eq!(
