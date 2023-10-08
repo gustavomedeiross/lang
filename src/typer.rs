@@ -283,10 +283,7 @@ mod tests {
                 Id::new("true"),
                 Scheme(
                     vec![],
-                    QualType::new(
-                        vec![],
-                        Type::Con(TyCon(Id::new("Bool"), Kind::Star)),
-                    ),
+                    QualType::new(vec![], Type::Con(TyCon(Id::new("Bool"), Kind::Star))),
                 ),
             ),
             // false : bool
@@ -294,10 +291,7 @@ mod tests {
                 Id::new("false"),
                 Scheme(
                     vec![],
-                    QualType::new(
-                        vec![],
-                        Type::Con(TyCon(Id::new("Bool"), Kind::Star)),
-                    ),
+                    QualType::new(vec![], Type::Con(TyCon(Id::new("Bool"), Kind::Star))),
                 ),
             ),
         ];
@@ -356,6 +350,24 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_basic_let_expr() -> Result<(), TypeError> {
+        let typed_expr = infer("let x = true in x")?.stringify_types();
+        assert_eq!(
+            typed_expr,
+            Expr::Let(
+                Id::new("x"),
+                "Bool".into(),
+                Box::new(Expr::Var(Id::new("true"), "Bool".into())),
+                Box::new(Expr::Var(Id::new("x"), "Bool".into())),
+            )
+        );
+
+        Ok(())
+    }
+
+    // type classes
 
     #[test]
     fn test_lambda_with_application_of_qual_type() -> Result<(), TypeError> {
