@@ -31,14 +31,19 @@ fn default_prelude() -> Prelude {
 
 mod principal_type {
     use super::infer;
-    use crate::typer::TypeError;
+    use crate::{typer::TypeError, parser};
+
+    fn types_to(input: &str, expected: &str) -> Result<(), TypeError> {
+        let typed_expr = infer(&input)?.get_type();
+        let expected = parser::parse_qual_type_expr(expected)
+            .expect("parsing failed");
+        assert_eq!(typed_expr, expected);
+        Ok(())
+    }
 
     #[test]
     fn test_literal_num() -> Result<(), TypeError> {
-        let typed_expr = infer("1")?.get_type().to_string();
-        let expected = "Num t0 => t0".to_owned();
-        assert_eq!(typed_expr, expected);
-        Ok(())
+        types_to("1", "(Num t0) => t0")
     }
 }
 
