@@ -246,40 +246,63 @@ mod tests {
 
     // TODO: refactor this
     fn default_prelude() -> Prelude {
-        // show : forall a . Show a => a -> String
-        let show_assump = Assumption(
-            Id::new("show"),
-            Scheme(
-                vec![TyVar(Id::new("a"), Kind::Star)],
-                QualType::new(
-                    vec![Pred::new(
-                        Id::new("Show"),
-                        Type::Var(TyVar(Id::new("a"), Kind::Star)),
-                    )],
-                    Type::Arrow(
-                        Box::new(Type::Var(TyVar(Id::new("a"), Kind::Star))),
-                        Box::new(Type::Con(TyCon(Id::new("String"), Kind::Star))),
+        let assumptions = vec![
+            // show : forall a . Show a => a -> String
+            Assumption(
+                Id::new("show"),
+                Scheme(
+                    vec![TyVar(Id::new("a"), Kind::Star)],
+                    QualType::new(
+                        vec![Pred::new(
+                            Id::new("Show"),
+                            Type::Var(TyVar(Id::new("a"), Kind::Star)),
+                        )],
+                        Type::Arrow(
+                            Box::new(Type::Var(TyVar(Id::new("a"), Kind::Star))),
+                            Box::new(Type::Con(TyCon(Id::new("String"), Kind::Star))),
+                        ),
                     ),
                 ),
             ),
-        );
-
-        // increment : Int -> Int
-        let increment_assump = Assumption(
-            Id::new("increment"),
-            Scheme(
-                vec![],
-                QualType::new(
+            // increment : Int -> Int
+            Assumption(
+                Id::new("increment"),
+                Scheme(
                     vec![],
-                    Type::Arrow(
-                        Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
-                        Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                    QualType::new(
+                        vec![],
+                        Type::Arrow(
+                            Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                            Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                        ),
                     ),
                 ),
             ),
-        );
+            // true : bool
+            Assumption(
+                Id::new("true"),
+                Scheme(
+                    vec![],
+                    QualType::new(
+                        vec![],
+                        Type::Con(TyCon(Id::new("Bool"), Kind::Star)),
+                    ),
+                ),
+            ),
+            // false : bool
+            Assumption(
+                Id::new("false"),
+                Scheme(
+                    vec![],
+                    QualType::new(
+                        vec![],
+                        Type::Con(TyCon(Id::new("Bool"), Kind::Star)),
+                    ),
+                ),
+            ),
+        ];
 
-        Prelude(TypeClassEnv, vec![show_assump, increment_assump])
+        Prelude(TypeClassEnv, assumptions)
     }
 
     #[test]
@@ -346,16 +369,37 @@ mod tests {
                     Box::new(Expr::Var(Id::new("show"), "Show t0 => t0 -> String".into())),
                     // TODO: should this have "Show a" or not?
                     // it's not strictly required, as this structure is only going to be used for coge generation
-                    // so whatever works best, if we prefer to remove the "Show" predicate (from the Expr::Var)
-                    // we can do that.
-                    Box::new(Expr::Var(Id::new("x"), "Show t0 => t0".into())),
-                    "String".into(),
+                    Box::new(Expr::Var(Id::new("x"), "t0".into())),
+                    "Show t0 => String".into(),
                 ))
             )
         );
 
         Ok(())
     }
+
+    // #[test]
+    // fn test_application_of_qual_type_without_instance() -> Result<(), TypeError> {
+    //     let typed_expr = infer("show true")?.stringify_types();
+    //     assert_eq!(
+    //         typed_expr,
+    //         Expr::Lambda(
+    //             Id::new("x"),
+    //             "Show t0 => t0 -> String".into(),
+    //             Box::new(Expr::App(
+    //                 Box::new(Expr::Var(Id::new("show"), "Show t0 => t0 -> String".into())),
+    //                 // TODO: should this have "Show a" or not?
+    //                 // it's not strictly required, as this structure is only going to be used for coge generation
+    //                 // so whatever works best, if we prefer to remove the "Show" predicate (from the Expr::Var)
+    //                 // we can do that.
+    //                 Box::new(Expr::Var(Id::new("x"), "Show t0 => t0".into())),
+    //                 "String".into(),
+    //             ))
+    //         )
+    //     );
+
+    //     Ok(())
+    // }
 
     // TODO: test
     //
@@ -367,4 +411,5 @@ mod tests {
     //
     // "let f x = show x in f true" `yields` "missing typeclass instance: Show(bool)
     //
+    // let f = fun x -> let y = show(x) in x in f `yields` Show a => a -> a
 }
