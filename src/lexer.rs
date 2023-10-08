@@ -18,6 +18,8 @@ pub enum Token {
     Colon,
     #[token(",")]
     Comma,
+    #[token(".")]
+    Dot,
     #[token("->")]
     Arrow,
     #[token("=>")]

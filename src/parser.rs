@@ -28,6 +28,13 @@ pub fn parse_qual_type_expr(input: &str) -> Result<types::QualType, SyntaxError>
         .map_err(SyntaxError)
 }
 
+pub fn parse_type_scheme(input: &str) -> Result<types::Scheme, SyntaxError> {
+    let tokens = lexer::Lexer::new(input);
+    grammar::TypeSchemeParser::new()
+        .parse(tokens)
+        .map_err(SyntaxError)
+}
+
 #[cfg(test)]
 mod expr_tests {
     use crate::ast::{Id, Literal, ParsedExpr};
@@ -110,7 +117,7 @@ mod expr_tests {
 mod type_expr_tests {
     use crate::{
         ast::Id,
-        types::{Kind, Pred, QualType, TyCon, TyVar, Type},
+        types::{Kind, Pred, QualType, Scheme, TyCon, TyVar, Type},
     };
 
     fn parse_type_expr(input: &str) -> Type {
@@ -119,6 +126,10 @@ mod type_expr_tests {
 
     fn parse_qual_type_expr(input: &str) -> QualType {
         super::parse_qual_type_expr(input).expect("parsing failed")
+    }
+
+    fn parse_type_scheme(input: &str) -> Scheme {
+        super::parse_type_scheme(input).expect("parsing failed")
     }
 
     #[test]
@@ -184,6 +195,24 @@ mod type_expr_tests {
                 Type::Arrow(
                     Box::new(Type::Var(TyVar(Id::new("a"), Kind::Star))),
                     Box::new(Type::Var(TyVar(Id::new("b"), Kind::Star))),
+                )
+            )
+        );
+    }
+
+    // TODO:
+    #[test]
+    fn test_type_scheme() {
+        assert_eq!(
+            parse_type_scheme("a . (Show a) => a"),
+            Scheme::new(
+                vec![TyVar(Id::new("a"), Kind::Star)],
+                QualType::new(
+                    vec![Pred::new(
+                        Id::new("Show"),
+                        Type::Var(TyVar(Id::new("a"), Kind::Star))
+                    )],
+                    Type::Var(TyVar(Id::new("a"), Kind::Star))
                 )
             )
         );

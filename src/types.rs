@@ -279,6 +279,12 @@ impl fmt::Display for Pred {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Scheme(pub Vec<TyVar>, pub QualType);
 
+impl Scheme {
+    pub fn new(tyvars: Vec<TyVar>, qual_type: QualType) -> Self {
+        Scheme(tyvars, qual_type)
+    }
+}
+
 impl Substitutes for Scheme {
     fn apply(self, subst: &Subst) -> Self {
         Scheme(self.0, self.1.apply(subst))

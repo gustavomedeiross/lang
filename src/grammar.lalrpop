@@ -1,6 +1,6 @@
 use crate::ast::{ParsedExpr, Literal, Id};
 use crate::lexer::{LexicalError, Token};
-use crate::types::{Type, TyVar, TyCon, Kind, QualType, Qual, Pred};
+use crate::types::{Type, TyVar, TyCon, Kind, QualType, Qual, Pred, Scheme};
 
 grammar;
 
@@ -16,6 +16,7 @@ extern {
     "=" => Token::Equals,
     ":" => Token::Colon,
     "," => Token::Comma,
+    "." => Token::Dot,
     "->" => Token::Arrow,
     "=>" => Token::FatArrow,
     "fun" => Token::Fun,
@@ -129,5 +130,20 @@ Predicates = CommaSeparated<Predicate>;
 Predicate: Pred = {
     <type_class:"pascal case identifier"> <ty:TypeExpr> => {
         Pred::new(Id::new(&type_class), ty)
+    }
+}
+
+pub TypeScheme: Scheme = {
+    <vars:QuantifiedVariables> "." <qt:QualTypeExpr> => {
+        Scheme(vars, qt)
+    }
+}
+
+QuantifiedVariables = CommaSeparated<TypeVariable>;
+
+TypeVariable: TyVar = {
+    // TODO: for nor all type variables have kind *
+    <tyvar:"camel case identifier"> => {
+        TyVar(Id::new(&tyvar), Kind::Star)
     }
 }
