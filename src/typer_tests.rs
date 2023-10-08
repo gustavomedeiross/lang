@@ -2,7 +2,6 @@ use crate::{
     ast::{Id, TypedExpr},
     parser, simplifier,
     typer::{Assumption, Prelude, TypeClassEnv, TypeError, Typer},
-    types::{Kind, Pred, QualType, Scheme, TyCon, TyVar, Type},
 };
 
 fn infer(input: &str) -> Result<TypedExpr, TypeError> {
@@ -12,56 +11,19 @@ fn infer(input: &str) -> Result<TypedExpr, TypeError> {
     typer.type_check(expr)
 }
 
-// TODO: refactor this
+fn assumption(id: &str, scheme: &str) -> Assumption {
+    Assumption(
+        Id::new(id),
+        parser::parse_type_scheme(scheme).expect("parsing failed"),
+    )
+}
+
 fn default_prelude() -> Prelude {
     let assumptions = vec![
-        // show : forall a . Show a => a -> String
-        Assumption(
-            Id::new("show"),
-            Scheme(
-                vec![TyVar(Id::new("a"), Kind::Star)],
-                QualType::new(
-                    vec![Pred::new(
-                        Id::new("Show"),
-                        Type::Var(TyVar(Id::new("a"), Kind::Star)),
-                    )],
-                    Type::Arrow(
-                        Box::new(Type::Var(TyVar(Id::new("a"), Kind::Star))),
-                        Box::new(Type::Con(TyCon(Id::new("String"), Kind::Star))),
-                    ),
-                ),
-            ),
-        ),
-        // increment : Int -> Int
-        Assumption(
-            Id::new("increment"),
-            Scheme(
-                vec![],
-                QualType::new(
-                    vec![],
-                    Type::Arrow(
-                        Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
-                        Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
-                    ),
-                ),
-            ),
-        ),
-        // true : bool
-        Assumption(
-            Id::new("true"),
-            Scheme(
-                vec![],
-                QualType::new(vec![], Type::Con(TyCon(Id::new("Bool"), Kind::Star))),
-            ),
-        ),
-        // false : bool
-        Assumption(
-            Id::new("false"),
-            Scheme(
-                vec![],
-                QualType::new(vec![], Type::Con(TyCon(Id::new("Bool"), Kind::Star))),
-            ),
-        ),
+        assumption("show", "a . (Show a) => a -> String"),
+        assumption("increment", "Int -> Int"),
+        assumption("true", "Bool"),
+        assumption("false", "Bool"),
     ];
 
     Prelude(TypeClassEnv, assumptions)

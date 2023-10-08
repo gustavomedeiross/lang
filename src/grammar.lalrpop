@@ -136,7 +136,10 @@ Predicate: Pred = {
 pub TypeScheme: Scheme = {
     <vars:QuantifiedVariables> "." <qt:QualTypeExpr> => {
         Scheme(vars, qt)
-    }
+    },
+    <qt:QualTypeExpr> => {
+        Scheme(vec![], qt)
+    },
 }
 
 QuantifiedVariables = CommaSeparated<TypeVariable>;

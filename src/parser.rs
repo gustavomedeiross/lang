@@ -216,5 +216,25 @@ mod type_expr_tests {
                 )
             )
         );
+        assert_eq!(
+            parse_type_scheme("Int -> Int"),
+            Scheme::new(
+                vec![],
+                QualType::new(
+                    vec![],
+                    Type::Arrow(
+                        Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                        Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                    )
+                )
+            )
+        );
+        assert_eq!(
+            parse_type_scheme("Bool"),
+            Scheme::new(
+                vec![],
+                QualType::new(vec![], Type::Con(TyCon(Id::new("Bool"), Kind::Star)))
+            )
+        );
     }
 }
