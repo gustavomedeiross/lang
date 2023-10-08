@@ -16,8 +16,12 @@ pub enum Token {
     Equals,
     #[token(":")]
     Colon,
+    #[token(",")]
+    Comma,
     #[token("->")]
     Arrow,
+    #[token("=>")]
+    FatArrow,
     #[token("fun")]
     Fun,
 
