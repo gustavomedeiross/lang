@@ -81,6 +81,7 @@ impl TypedExpr {
         }
     }
 
+    #[cfg(test)]
     pub fn stringify_types(self) -> Expr<String> {
         match self {
             Expr::Var(id, ty) => Expr::Var(id, ty.to_string()),

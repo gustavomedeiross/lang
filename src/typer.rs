@@ -20,7 +20,7 @@ pub struct Typer {
     // TODO: probably should be a Map<TGen, QualType>
     var_env: HashMap<Id, Scheme>,
     gen_state: TGenState,
-    type_class_env: TypeClassEnv,
+    _type_class_env: TypeClassEnv,
 }
 
 impl Typer {
@@ -33,7 +33,7 @@ impl Typer {
 
         Self {
             var_env: initial_var_env,
-            type_class_env: prelude.0,
+            _type_class_env: prelude.0,
             gen_state: TGenState::initial_state(),
         }
     }
@@ -60,12 +60,6 @@ impl TGenState {
 }
 
 struct Constraint(Type, Type);
-
-impl Constraint {
-    fn new(lhs: Type, rhs: Type) -> Self {
-        Self(lhs, rhs)
-    }
-}
 
 impl Typer {
     pub fn type_check(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {

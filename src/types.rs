@@ -75,6 +75,7 @@ pub enum Type {
     Arrow(Box<Type>, Box<Type>),
     // TODO: we should have another variation of "Type"
     // without "Gen"
+    #[allow(dead_code)]
     Gen(TGen),
 }
 
