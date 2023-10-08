@@ -21,7 +21,8 @@ extern {
     "fun" => Token::Fun,
     "integer literal" => Token::IntegerLiteral(<i64>),
     "string literal" => Token::StringLiteral(<String>),
-    "identifier" => Token::Identifier(<String>),
+    "camel case identifier" => Token::CamelCaseIdentifier(<String>),
+    "pascal case identifier" => Token::PascalCaseIdentifier(<String>),
   }
 }
 
@@ -55,19 +56,19 @@ Terminal: Box<ParsedExpr> = {
     <str:"string literal"> => {
         Box::new(ParsedExpr::Lit(Literal::Str(str)))
     },
-    <id:"identifier"> => {
+    <id:"camel case identifier"> => {
         Box::new(ParsedExpr::Var(Id::new(&id)))
     },
 }
 
 LetExpr: Box<ParsedExpr> = {
-    "let" <id:"identifier"> "=" <e1:Expr> "in" <e2:Expr> => {
+    "let" <id:"camel case identifier"> "=" <e1:Expr> "in" <e2:Expr> => {
         Box::new(ParsedExpr::Let(Id::new(&id), e1, e2))
     }
 }
 
 Args: Vec<Id> = {
-    <params:"identifier"*> => {
+    <params:"camel case identifier"*> => {
         params.into_iter().map(|param| Id::new(&param)).collect::<Vec<_>>()
     }
 }
@@ -90,11 +91,13 @@ pub TypeExpr: Type = {
     TypeApp
 }
 
-// TODO: handle both vars and constants
+// TODO: by default both of them have Kind::Star, not sure if it's ok or not
 TypeTerminal: Type = {
-    <id:"identifier"> => {
-        // TODO: by default everything has Kind::Star, not sure if this is a good idea
+    <id:"camel case identifier"> => {
         Type::Var(TyVar(Id::new(&id), Kind::Star))
+    },
+    <id:"pascal case identifier"> => {
+        Type::Con(TyCon(Id::new(&id), Kind::Star))
     },
 }
 
@@ -124,7 +127,7 @@ pub QualTypeExpr: QualType = {
 Predicates = CommaSeparated<Predicate>;
 
 Predicate: Pred = {
-    <class:"identifier"> <ty:TypeExpr> => {
-        Pred::new(Id::new(&class), ty)
+    <type_class:"pascal case identifier"> <ty:TypeExpr> => {
+        Pred::new(Id::new(&type_class), ty)
     }
 }

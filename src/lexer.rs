@@ -32,8 +32,11 @@ pub enum Token {
     #[regex("\"([^\"\\\\]|\\\\.)*\"", |lex| lex.slice().to_owned())]
     StringLiteral(String),
 
-    #[regex("[_a-zA-Z][_0-9a-zA-Z]*", |lex| lex.slice().to_owned())]
-    Identifier(String),
+    #[regex("[a-z][_0-9a-zA-Z]*", |lex| lex.slice().to_owned())]
+    CamelCaseIdentifier(String),
+
+    #[regex("[A-Z][_0-9a-zA-Z]*", |lex| lex.slice().to_owned())]
+    PascalCaseIdentifier(String),
 }
 
 impl fmt::Display for Token {
@@ -97,12 +100,29 @@ mod tests {
                 Token::Fun,
                 Token::Arrow,
                 Token::Let,
-                Token::Identifier("ident".to_owned()),
+                Token::CamelCaseIdentifier("ident".to_owned()),
                 Token::Equals,
                 Token::IntegerLiteral(1),
                 Token::In,
                 Token::StringLiteral("\"hello\"".to_owned()),
             ]
         );
+    }
+
+    #[test]
+    fn test_identifiers() {
+        let result = Token::lexer("Show")
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(result, &[Token::PascalCaseIdentifier("Show".to_owned()),]);
+
+        let result = Token::lexer("abc")
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(result, &[Token::CamelCaseIdentifier("abc".to_owned()),]);
     }
 }

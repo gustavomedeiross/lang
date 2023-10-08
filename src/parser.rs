@@ -108,7 +108,10 @@ mod expr_tests {
 
 #[cfg(test)]
 mod type_expr_tests {
-    use crate::{ast::Id, types::{Type, QualType, Kind, TyCon, TyVar}};
+    use crate::{
+        ast::Id,
+        types::{Kind, Pred, QualType, TyCon, TyVar, Type},
+    };
 
     fn parse_type_expr(input: &str) -> Type {
         super::parse_type_expr(input).expect("parsing failed")
@@ -140,7 +143,48 @@ mod type_expr_tests {
             Type::App(
                 // TODO: should be * -> * actually, not sure how to enforce this on the parser level
                 Box::new(Type::Con(TyCon(Id::new("List"), Kind::Star))),
-                Box::new(Type::Var(TyVar(Id::new("Int"), Kind::Star))),
+                Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+            )
+        );
+    }
+
+    #[test]
+    fn test_qual_type_expr() {
+        assert_eq!(
+            parse_qual_type_expr("Int"),
+            QualType::new(vec![], Type::Con(TyCon(Id::new("Int"), Kind::Star)))
+        );
+        assert_eq!(
+            parse_qual_type_expr("(Show a) => a"),
+            QualType::new(
+                vec![Pred::new(
+                    Id::new("Show"),
+                    Type::Var(TyVar(Id::new("a"), Kind::Star))
+                )],
+                Type::Var(TyVar(Id::new("a"), Kind::Star))
+            )
+        );
+        assert_eq!(
+            parse_qual_type_expr("(Show a, Eq a) => a"),
+            QualType::new(
+                vec![
+                    Pred::new(Id::new("Show"), Type::Var(TyVar(Id::new("a"), Kind::Star))),
+                    Pred::new(Id::new("Eq"), Type::Var(TyVar(Id::new("a"), Kind::Star)))
+                ],
+                Type::Var(TyVar(Id::new("a"), Kind::Star))
+            )
+        );
+        assert_eq!(
+            parse_qual_type_expr("(Show a, Eq b) => a -> b"),
+            QualType::new(
+                vec![
+                    Pred::new(Id::new("Show"), Type::Var(TyVar(Id::new("a"), Kind::Star))),
+                    Pred::new(Id::new("Eq"), Type::Var(TyVar(Id::new("b"), Kind::Star)))
+                ],
+                Type::Arrow(
+                    Box::new(Type::Var(TyVar(Id::new("a"), Kind::Star))),
+                    Box::new(Type::Var(TyVar(Id::new("b"), Kind::Star))),
+                )
             )
         );
     }
