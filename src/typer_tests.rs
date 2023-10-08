@@ -67,79 +67,25 @@ fn default_prelude() -> Prelude {
     Prelude(TypeClassEnv, assumptions)
 }
 
-#[test]
-fn test_literal_num() -> Result<(), TypeError> {
-    let typed_expr = infer("1")?.get_type().to_string();
-    let expected = "Num t0 => t0".to_owned();
-    assert_eq!(typed_expr, expected);
-    Ok(())
+mod principal_type {
+    use super::infer;
+    use crate::typer::TypeError;
+
+    #[test]
+    fn test_literal_num() -> Result<(), TypeError> {
+        let typed_expr = infer("1")?.get_type().to_string();
+        let expected = "Num t0 => t0".to_owned();
+        assert_eq!(typed_expr, expected);
+        Ok(())
+    }
 }
 
 mod typed_expr {
-    use super::*;
-    use crate::{ast::{Expr, Literal}, parser, simplifier, types::TyCon};
-
-    fn infer(input: &str) -> Result<TypedExpr, TypeError> {
-        let parsed = parser::parse_expr(input).expect("parsing failed");
-        let expr = simplifier::simplify(*parsed).expect("simplification failed");
-        let mut typer = Typer::new(default_prelude());
-        typer.type_check(expr)
-    }
-
-    // TODO: refactor this
-    fn default_prelude() -> Prelude {
-        let assumptions = vec![
-            // show : forall a . Show a => a -> String
-            Assumption(
-                Id::new("show"),
-                Scheme(
-                    vec![TyVar(Id::new("a"), Kind::Star)],
-                    QualType::new(
-                        vec![Pred::new(
-                            Id::new("Show"),
-                            Type::Var(TyVar(Id::new("a"), Kind::Star)),
-                        )],
-                        Type::Arrow(
-                            Box::new(Type::Var(TyVar(Id::new("a"), Kind::Star))),
-                            Box::new(Type::Con(TyCon(Id::new("String"), Kind::Star))),
-                        ),
-                    ),
-                ),
-            ),
-            // increment : Int -> Int
-            Assumption(
-                Id::new("increment"),
-                Scheme(
-                    vec![],
-                    QualType::new(
-                        vec![],
-                        Type::Arrow(
-                            Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
-                            Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
-                        ),
-                    ),
-                ),
-            ),
-            // true : bool
-            Assumption(
-                Id::new("true"),
-                Scheme(
-                    vec![],
-                    QualType::new(vec![], Type::Con(TyCon(Id::new("Bool"), Kind::Star))),
-                ),
-            ),
-            // false : bool
-            Assumption(
-                Id::new("false"),
-                Scheme(
-                    vec![],
-                    QualType::new(vec![], Type::Con(TyCon(Id::new("Bool"), Kind::Star))),
-                ),
-            ),
-        ];
-
-        Prelude(TypeClassEnv, assumptions)
-    }
+    use super::infer;
+    use crate::{
+        ast::{Expr, Id, Literal},
+        typer::TypeError,
+    };
 
     #[test]
     fn test_literal_num() -> Result<(), TypeError> {
