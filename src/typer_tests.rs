@@ -1,12 +1,12 @@
 use crate::{
-    ast::{Expr, Id, Literal, TypedExpr},
+    ast::{Id, TypedExpr},
     parser, simplifier,
     typer::{Assumption, Prelude, TypeClassEnv, TypeError, Typer},
     types::{Kind, Pred, QualType, Scheme, TyCon, TyVar, Type},
 };
 
 fn infer(input: &str) -> Result<TypedExpr, TypeError> {
-    let parsed = parser::parse(input).expect("parsing failed");
+    let parsed = parser::parse_expr(input).expect("parsing failed");
     let expr = simplifier::simplify(*parsed).expect("simplification failed");
     let mut typer = Typer::new(default_prelude());
     typer.type_check(expr)
