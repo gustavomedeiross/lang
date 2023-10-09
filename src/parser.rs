@@ -35,6 +35,45 @@ pub fn parse_type_scheme(input: &str) -> Result<types::Scheme, SyntaxError> {
         .map_err(SyntaxError)
 }
 
+pub mod grammar_support {
+    use crate::{
+        ast::Id,
+        types::{Kind, TyCon, TyVar, Type},
+    };
+
+    pub fn make_type_application(t1: &str, t2: &str) -> Type {
+        let t1_kind = Kind::KFun(Box::new(Kind::Star), Box::new(Kind::Star));
+        let t1 = if is_pascal_case(t1) {
+            Type::Con(TyCon(Id::new(t1), t1_kind))
+        } else {
+            Type::Var(TyVar(Id::new(t1), t1_kind))
+        };
+
+        let t2_kind = Kind::Star;
+        let t2 = if is_pascal_case(t2) {
+            Type::Con(TyCon(Id::new(t2), t2_kind))
+        } else {
+            Type::Var(TyVar(Id::new(t2), t2_kind))
+        };
+
+        Type::App(Box::new(t1), Box::new(t2))
+    }
+
+    fn is_pascal_case(s: &str) -> bool {
+        s.chars()
+            .nth(0)
+            .expect("precondition failed")
+            .is_uppercase()
+    }
+
+    fn is_camel_case(s: &str) -> bool {
+        s.chars()
+            .nth(0)
+            .expect("precondition failed")
+            .is_lowercase()
+    }
+}
+
 #[cfg(test)]
 mod expr_tests {
     use crate::ast::{Id, Literal, ParsedExpr};

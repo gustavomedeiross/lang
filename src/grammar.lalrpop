@@ -1,30 +1,31 @@
 use crate::ast::{ParsedExpr, Literal, Id};
 use crate::lexer::{LexicalError, Token};
+use crate::parser::grammar_support;
 use crate::types::{Type, TyVar, TyCon, Kind, QualType, Qual, Pred, Scheme};
 
 grammar;
 
 extern {
-  type Location = usize;
-  type Error = LexicalError;
+    type Location = usize;
+    type Error = LexicalError;
 
-  enum Token {
-    "(" => Token::LParens,
-    ")" => Token::RParens,
-    "let" => Token::Let,
-    "in" => Token::In,
-    "=" => Token::Equals,
-    ":" => Token::Colon,
-    "," => Token::Comma,
-    "." => Token::Dot,
-    "->" => Token::Arrow,
-    "=>" => Token::FatArrow,
-    "fun" => Token::Fun,
-    "integer literal" => Token::IntegerLiteral(<i64>),
-    "string literal" => Token::StringLiteral(<String>),
-    "camel case identifier" => Token::CamelCaseIdentifier(<String>),
-    "pascal case identifier" => Token::PascalCaseIdentifier(<String>),
-  }
+    enum Token {
+        "(" => Token::LParens,
+        ")" => Token::RParens,
+        "let" => Token::Let,
+        "in" => Token::In,
+        "=" => Token::Equals,
+        ":" => Token::Colon,
+        "," => Token::Comma,
+        "." => Token::Dot,
+        "->" => Token::Arrow,
+        "=>" => Token::FatArrow,
+        "fun" => Token::Fun,
+        "integer literal" => Token::IntegerLiteral(<i64>),
+        "string literal" => Token::StringLiteral(<String>),
+        "camel case identifier" => Token::CamelCaseIdentifier(<String>),
+        "pascal case identifier" => Token::PascalCaseIdentifier(<String>),
+    }
 }
 
 // utility for comma-separated lists
@@ -109,10 +110,20 @@ TypeArrow: Type = {
 }
 
 // TODO: for now we only support applications of kind * -> *
+// TODO: workaround, improve this
 TypeApp: Type = {
-    <t1:TypeTerminal> <t2:TypeTerminal> => {
-        Type::App(Box::new(t1), Box::new(t2))
-    }
+    <t1:"camel case identifier"> <t2: "camel case identifier"> => {
+        grammar_support::make_type_application(&t1, &t2)
+    },
+    <t1:"camel case identifier"> <t2: "pascal case identifier"> => {
+        grammar_support::make_type_application(&t1, &t2)
+    },
+    <t1:"pascal case identifier"> <t2: "pascal case identifier"> => {
+        grammar_support::make_type_application(&t1, &t2)
+    },
+    <t1:"pascal case identifier"> <t2: "camel case identifier"> => {
+        grammar_support::make_type_application(&t1, &t2)
+    },
 }
 
 // TODO: for now we don't support syntax like `Show a => a -> a`, only `(Show a) => a -> a`
