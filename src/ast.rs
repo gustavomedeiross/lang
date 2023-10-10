@@ -80,26 +80,4 @@ impl TypedExpr {
             Expr::Lambda(_, ty, _) => ty,
         }
     }
-
-    #[cfg(test)]
-    pub fn stringify_types(self) -> Expr<String> {
-        match self {
-            Expr::Var(id, ty) => Expr::Var(id, ty.to_string()),
-            Expr::Lit(lit, ty) => Expr::Lit(lit, ty.to_string()),
-            Expr::App(e1, e2, ty) => Expr::App(
-                Box::new(e1.stringify_types()),
-                Box::new(e2.stringify_types()),
-                ty.to_string(),
-            ),
-            Expr::Let(id, ty, e1, e2) => Expr::Let(
-                id,
-                ty.to_string(),
-                Box::new(e1.stringify_types()),
-                Box::new(e2.stringify_types()),
-            ),
-            Expr::Lambda(id, ty, e) => {
-                Expr::Lambda(id, ty.to_string(), Box::new(e.stringify_types()))
-            }
-        }
-    }
 }

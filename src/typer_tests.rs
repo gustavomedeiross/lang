@@ -49,100 +49,95 @@ mod principal_type {
 mod typed_expr {
     use super::infer;
     use crate::{
-        ast::{Expr, Id, Literal},
-        typer::TypeError,
+        ast::{Expr, Id, Literal, TypedExpr},
+        parser, types,
     };
 
-    #[test]
-    fn test_literal_num() -> Result<(), TypeError> {
-        let typed_expr = infer("1")?.stringify_types();
-        let qual_type = "Num t0 => t0".to_owned();
-        assert_eq!(typed_expr, Expr::Lit(Literal::Int(1), qual_type));
-        Ok(())
+    fn infers(input: &str, expected: TypedExpr) {
+        let typed_expr = infer(&input).expect("failed to infer type");
+        assert_eq!(typed_expr, expected);
+    }
+
+    fn qual_type(ty: &str) -> types::QualType {
+        parser::parse_qual_type_expr(ty).expect("parsing failed")
     }
 
     #[test]
-    fn test_literal_string() -> Result<(), TypeError> {
-        let typed_expr = infer(r#""hello""#)?.stringify_types();
-        let qual_type = "List Char".to_owned();
-        assert_eq!(
-            typed_expr,
-            Expr::Lit(Literal::Str(r#""hello""#.to_owned()), qual_type)
-        );
-        Ok(())
+    fn test_literal_num() {
+        let expr = "1";
+        let expected = Expr::Lit(Literal::Int(1), qual_type("(Num t0) => t0"));
+        infers(expr, expected)
     }
 
     #[test]
-    fn test_lambda_identity() -> Result<(), TypeError> {
-        let typed_expr = infer("fun x -> x")?.stringify_types();
-        assert_eq!(
-            typed_expr,
-            Expr::Lambda(
-                Id::new("x"),
-                "t0 -> t0".to_string(),
-                Box::new(Expr::Var(Id::new("x"), "t0".to_string()))
-            )
+    fn test_literal_string() {
+        let expr = r#""hello""#;
+        let expected = Expr::Lit(
+            Literal::Str(r#""hello""#.to_owned()),
+            qual_type("List Char"),
         );
-        Ok(())
+        infers(expr, expected)
     }
 
     #[test]
-    fn test_lambda_with_application() -> Result<(), TypeError> {
-        let typed_expr = infer("fun x -> increment x")?.stringify_types();
-        assert_eq!(
-            typed_expr,
-            Expr::Lambda(
-                Id::new("x"),
-                "Int -> Int".into(),
-                Box::new(Expr::App(
-                    Box::new(Expr::Var(Id::new("increment"), "Int -> Int".into())),
-                    Box::new(Expr::Var(Id::new("x"), "Int".into())),
-                    "Int".into(),
-                ))
-            )
+    fn test_lambda_identity() {
+        let expr = "fun x -> x";
+        let expected = Expr::Lambda(
+            Id::new("x"),
+            qual_type("t0 -> t0"),
+            Box::new(Expr::Var(Id::new("x"), qual_type("t0"))),
         );
+        infers(expr, expected)
+    }
 
-        Ok(())
+    #[test]
+    fn test_lambda_with_application() {
+        let expr = "fun x -> increment x";
+        let expected = Expr::Lambda(
+            Id::new("x"),
+            qual_type("Int -> Int"),
+            Box::new(Expr::App(
+                Box::new(Expr::Var(Id::new("increment"), qual_type("Int -> Int"))),
+                Box::new(Expr::Var(Id::new("x"), qual_type("Int"))),
+                qual_type("Int"),
+            )),
+        );
+        infers(expr, expected)
     }
 
     #[test]
     #[ignore]
-    fn test_basic_let_expr() -> Result<(), TypeError> {
-        let typed_expr = infer("let x = true in x")?.stringify_types();
-        assert_eq!(
-            typed_expr,
-            Expr::Let(
-                Id::new("x"),
-                "Bool".into(),
-                Box::new(Expr::Var(Id::new("true"), "Bool".into())),
-                Box::new(Expr::Var(Id::new("x"), "Bool".into())),
-            )
+    fn test_basic_let_expr() {
+        let expr = "let x = true in x";
+        let expected = Expr::Let(
+            Id::new("x"),
+            qual_type("Bool"),
+            Box::new(Expr::Var(Id::new("true"), qual_type("Bool"))),
+            Box::new(Expr::Var(Id::new("x"), qual_type("Bool"))),
         );
-
-        Ok(())
+        infers(expr, expected)
     }
 
     // type classes
 
     #[test]
-    fn test_lambda_with_application_of_qual_type() -> Result<(), TypeError> {
-        let typed_expr = infer("fun x -> show x")?.stringify_types();
-        assert_eq!(
-            typed_expr,
-            Expr::Lambda(
-                Id::new("x"),
-                "Show t0 => t0 -> String".into(),
-                Box::new(Expr::App(
-                    Box::new(Expr::Var(Id::new("show"), "Show t0 => t0 -> String".into())),
-                    // TODO: should this have "Show a" or not?
-                    // it's not strictly required, as this structure is only going to be used for coge generation
-                    Box::new(Expr::Var(Id::new("x"), "t0".into())),
-                    "Show t0 => String".into(),
-                ))
-            )
+    fn test_lambda_with_application_of_qual_type() {
+        let expr = "fun x -> show x";
+        let expected = Expr::Lambda(
+            Id::new("x"),
+            qual_type("(Show t0) => t0 -> String"),
+            Box::new(Expr::App(
+                Box::new(Expr::Var(
+                    Id::new("show"),
+                    qual_type("(Show t0) => t0 -> String"),
+                )),
+                // TODO: should this have "Show a" or not?
+                // it's not strictly required, as this structure is only going to be used for coge generation
+                Box::new(Expr::Var(Id::new("x"), qual_type("t0"))),
+                qual_type("(Show t0) => String"),
+            )),
         );
-
-        Ok(())
+        infers(expr, expected)
     }
 
     // #[test]
