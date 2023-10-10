@@ -46,6 +46,7 @@ impl Subst {
 }
 
 pub trait Substitutes {
+    // TODO: should be apply(&mut self, subst: &Subst) -> Unit
     fn apply(self, subst: &Subst) -> Self;
 }
 
@@ -61,6 +62,7 @@ pub trait HasFreeTypeVariables {
 
 impl<T: HasFreeTypeVariables> HasFreeTypeVariables for Vec<T> {
     fn ftv(self) -> Vec<TyVar> {
+        // TODO: transform into set to remove duplicates
         self.into_iter().flat_map(|t| t.ftv()).collect()
     }
 }

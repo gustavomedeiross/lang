@@ -58,6 +58,7 @@ impl TGenState {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
 struct Constraint(Type, Type);
 
 impl Typer {
@@ -116,7 +117,24 @@ impl Typer {
                     TypedExpr::App(Box::new(typed_fn_expr), Box::new(typed_arg_expr), qual_type);
                 Ok((typed_expr, constraints))
             }
-            UntypedExpr::Let(_, _, _, _) => todo!(),
+            UntypedExpr::Let(name, (), e1, e2) => {
+                let (typed_e1, mut e1_constraints) = self.infer(*e1)?;
+                let ty_e1 = typed_e1.clone().get_type();
+                let scheme = self.generalize(ty_e1, e1_constraints.clone())?;
+                self.var_env.insert(name.clone(), scheme);
+
+                let (typed_e2, mut e2_constraints) = self.infer(*e2)?;
+                let ty_e2 = typed_e2.clone().get_type();
+
+                let mut constraints = vec![];
+                constraints.append(&mut e1_constraints);
+                constraints.append(&mut e2_constraints);
+
+                let typed_expr =
+                    TypedExpr::Let(name, ty_e2, Box::new(typed_e1), Box::new(typed_e2));
+
+                Ok((typed_expr, constraints))
+            }
             // TODO: it's still possible that we have bugs here:
             // - we're always creating param_tyvar with kind Star
             // - the param_qual_type is also created without any predicates
@@ -160,6 +178,43 @@ impl Typer {
     /// don't generalize a type, just return it as a scheme
     fn dont_generalize(qual_type: QualType) -> Scheme {
         Scheme(vec![], qual_type)
+    }
+
+    fn generalize(
+        &mut self,
+        qual_type: QualType,
+        constraints: Vec<Constraint>,
+    ) -> Result<Scheme, TypeError> {
+        let subst = self.unify(constraints)?;
+        let principal_type = qual_type.apply(&subst);
+        self.var_env_apply(&subst);
+
+        // TODO: implement ftv() for var_env
+        let schemes = self.var_env.clone().into_values().collect::<Vec<_>>();
+        let var_env_ftv = schemes.ftv();
+
+        // diff between ftvs in principal type and all quantified vars
+        let vars = principal_type
+            .clone()
+            .ftv()
+            .into_iter()
+            .filter(|tyvar| !var_env_ftv.contains(tyvar))
+            .collect::<Vec<_>>();
+
+        Ok(Scheme(vars, principal_type))
+    }
+
+    // TODO: implement apply() for var_env
+    fn var_env_apply(&mut self, subst: &Subst) {
+        // TODO: fix bad performance when we have the new Subst sig
+        let var_env = self
+            .var_env
+            .clone()
+            .into_iter()
+            .map(|(id, scheme)| (id, scheme.apply(&subst)))
+            .collect::<HashMap<_, _>>();
+
+        self.var_env = var_env;
     }
 
     /// instantiates all quantified variables in a scheme with fresh type variables

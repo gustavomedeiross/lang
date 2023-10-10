@@ -106,7 +106,6 @@ mod typed_expr {
     }
 
     #[test]
-    #[ignore]
     fn test_basic_let_expr() {
         let expr = "let x = true in x";
         let expected = Expr::Let(
