@@ -191,8 +191,10 @@ mod type_expr_tests {
         assert_eq!(
             parse_type_expr("List Int"),
             Type::App(
-                // TODO: should be * -> * actually, not sure how to enforce this on the parser level
-                Box::new(Type::Con(TyCon(Id::new("List"), Kind::Star))),
+                Box::new(Type::Con(TyCon(
+                    Id::new("List"),
+                    Kind::KFun(Box::new(Kind::Star), Box::new(Kind::Star))
+                )),),
                 Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
             )
         );
