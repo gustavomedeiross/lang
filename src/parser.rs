@@ -200,6 +200,22 @@ mod type_expr_tests {
         );
     }
 
+
+    #[test]
+    #[ignore = "not yet support"]
+    fn test_multiple_type_arrows() {
+        assert_eq!(
+            parse_type_expr("Int -> Int -> Int"),
+            Type::Arrow(
+                Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                Box::new(Type::Arrow(
+                    Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                    Box::new(Type::Con(TyCon(Id::new("Int"), Kind::Star))),
+                )),
+            )
+        );
+    }
+
     #[test]
     fn test_qual_type_expr() {
         assert_eq!(

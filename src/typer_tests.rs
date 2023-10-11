@@ -14,16 +14,16 @@ fn infer(input: &str) -> Result<TypedExpr, TypeError> {
 fn assumption(id: &str, scheme: &str) -> Assumption {
     Assumption(
         Id::new(id),
-        parser::parse_type_scheme(scheme).expect("parsing failed"),
+        parser::parse_type_scheme(scheme).expect("parsing of type scheme failed"),
     )
 }
 
 fn default_prelude() -> Prelude {
     let assumptions = vec![
-        assumption("show", "a . (Show a) => a -> String"),
-        assumption("increment", "Int -> Int"),
         assumption("true", "Bool"),
         assumption("false", "Bool"),
+        assumption("show", "a . (Show a) => a -> String"),
+        assumption("increment", "Int -> Int"),
     ];
 
     Prelude(TypeClassEnv, assumptions)
@@ -35,7 +35,7 @@ mod principal_type {
 
     fn types_to(input: &str, expected: &str) {
         let typed_expr = infer(&input).expect("failed to infer type").get_type();
-        let expected = parser::parse_qual_type_expr(expected).expect("parsing failed");
+        let expected = parser::parse_qual_type_expr(expected).expect("parsing of qual_type failed");
         assert_eq!(typed_expr, expected);
     }
 
@@ -43,6 +43,30 @@ mod principal_type {
     fn test_literals() {
         types_to("1", "(Num t0) => t0");
         types_to(r#""hello""#, "List Char");
+    }
+
+    #[test]
+    fn test_let() {
+        types_to("let x = true in x", "Bool");
+        types_to("let x = 2 in increment x", "(Num Int) => Int");
+        // TODO: add more tests
+    }
+
+    #[test]
+    fn test_let_polymorphism() {
+        types_to("let id = fun x -> x in id", "t0 -> t0");
+        types_to(r#"
+            let id = fun x -> x in
+            let int = id 2 in
+            let bool = id true in
+            int
+        "#, "(Num t4) => t4");
+        types_to(r#"
+            let id = fun x -> x in
+            let int = id 2 in
+            let bool = id true in
+            bool
+        "#, "Bool");
     }
 }
 
