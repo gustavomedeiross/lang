@@ -16,29 +16,55 @@ pub enum TypeError {
     OccursCheckFails(TyVar, Type),
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct VarEnv(HashMap<Id, Scheme>);
+
+impl VarEnv {
+    // TODO: implement traits
+    pub fn ftv(self) -> Vec<TyVar> {
+        self.0
+            .into_values()
+            .flat_map(|scheme| scheme.ftv())
+            .collect()
+    }
+
+    pub fn apply(&mut self, subst: &Subst) {
+        // TODO: fix bad performance when we have the new Subst sig
+        self.0 = self.0
+            .clone()
+            .into_iter()
+            .map(|(id, scheme)| (id, scheme.apply(subst)))
+            .collect::<HashMap<_, _>>();
+    }
+}
+
+impl From<Vec<Assumption>> for VarEnv {
+    fn from(assumptions: Vec<Assumption>) -> Self {
+        let var_env = assumptions
+            .into_iter()
+            .map(|Assumption(id, scheme)| (id, scheme))
+            .collect::<HashMap<Id, Scheme>>();
+
+        Self(var_env)
+    }
+}
+
 pub struct Typer {
-    var_env: HashMap<Id, Scheme>,
     gen_state: TGenState,
     _type_class_env: TypeClassEnv,
 }
 
 impl Typer {
     pub fn new(prelude: Prelude) -> Self {
-        let initial_var_env = prelude
-            .1
-            .into_iter()
-            .map(|Assumption(id, scheme)| (id, scheme))
-            .collect::<HashMap<Id, Scheme>>();
-
         Self {
-            var_env: initial_var_env,
             _type_class_env: prelude.0,
             gen_state: TGenState::initial_state(),
         }
     }
 }
 
-pub struct Prelude(pub TypeClassEnv, pub Vec<Assumption>);
+// TODO: should we have assumptions on the Prelude?
+pub struct Prelude(pub TypeClassEnv);
 
 pub struct TypeClassEnv;
 
@@ -62,20 +88,18 @@ impl TGenState {
 struct Constraint(Type, Type);
 
 impl Typer {
-    pub fn type_check(&mut self, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
-        let (typed_expr, constraints) = self.infer(expr)?;
+    pub fn type_check(&mut self, var_env: VarEnv, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
+        let (typed_expr, constraints) = self.infer(var_env, expr)?;
         let subst = self.unify(constraints)?;
         Ok(typed_expr.apply(&subst))
     }
 
     // update TypedExpr to be something that can have TGen values
     // in the middle of the expression (look at the definition of thio::quantify)
-    fn infer(&mut self, expr: UntypedExpr) -> Result<(TypedExpr, Vec<Constraint>), TypeError> {
+    fn infer(&mut self, mut var_env: VarEnv, expr: UntypedExpr) -> Result<(TypedExpr, Vec<Constraint>), TypeError> {
         match expr {
             UntypedExpr::Var(id, _) => {
-                let scheme = self
-                    .var_env
-                    .get(&id)
+                let scheme = var_env.0 .get(&id)
                     .ok_or_else(|| TypeError::UnboundVariable(id.clone()))?
                     .clone();
 
@@ -84,8 +108,8 @@ impl Typer {
             }
             UntypedExpr::Lit(lit, ()) => Ok(self.infer_lit(lit)),
             UntypedExpr::App(fn_expr, arg_expr, ()) => {
-                let (typed_fn_expr, mut fn_constraints) = self.infer(*fn_expr)?;
-                let (typed_arg_expr, mut arg_constraints) = self.infer(*arg_expr)?;
+                let (typed_fn_expr, mut fn_constraints) = self.infer(var_env.clone(), *fn_expr)?;
+                let (typed_arg_expr, mut arg_constraints) = self.infer(var_env, *arg_expr)?;
                 // TODO: I believe the kind here is correct, just double check later
                 let tyvar = Type::Var(self.gen_state.gen_fresh(Kind::Star));
                 let fn_qual_type = typed_fn_expr.clone().get_type();
@@ -118,12 +142,12 @@ impl Typer {
                 Ok((typed_expr, constraints))
             }
             UntypedExpr::Let(name, (), e1, e2) => {
-                let (typed_e1, mut e1_constraints) = self.infer(*e1)?;
+                let (typed_e1, mut e1_constraints) = self.infer(var_env.clone(), *e1)?;
                 let ty_e1 = typed_e1.clone().get_type();
-                let scheme = self.generalize(ty_e1, e1_constraints.clone())?;
-                self.var_env.insert(name.clone(), scheme);
+                let scheme = self.generalize(var_env.clone(), ty_e1, e1_constraints.clone())?;
+                var_env.0.insert(name.clone(), scheme);
 
-                let (typed_e2, mut e2_constraints) = self.infer(*e2)?;
+                let (typed_e2, mut e2_constraints) = self.infer(var_env, *e2)?;
                 let ty_e2 = typed_e2.clone().get_type();
 
                 let mut constraints = vec![];
@@ -141,10 +165,9 @@ impl Typer {
             UntypedExpr::Lambda(param, (), body_expr) => {
                 let param_tyvar = Type::Var(self.gen_state.gen_fresh(Kind::Star));
                 let param_qual_type = QualType::new(vec![], param_tyvar.clone());
-                self.var_env
-                    .insert(param.clone(), Self::dont_generalize(param_qual_type));
+                var_env.0.insert(param.clone(), Self::dont_generalize(param_qual_type));
 
-                let (typed_body_expr, constraints) = self.infer(*body_expr)?;
+                let (typed_body_expr, constraints) = self.infer(var_env, *body_expr)?;
                 let body_qual_type = typed_body_expr.clone().get_type();
                 let body_ty = body_qual_type.clone().ty();
                 let body_preds = body_qual_type.preds();
@@ -182,15 +205,16 @@ impl Typer {
 
     fn generalize(
         &mut self,
+        mut var_env: VarEnv,
         qual_type: QualType,
         constraints: Vec<Constraint>,
     ) -> Result<Scheme, TypeError> {
         let subst = self.unify(constraints)?;
         let principal_type = qual_type.apply(&subst);
-        self.var_env_apply(&subst);
+        var_env.apply(&subst);
 
         // TODO: implement ftv() for var_env
-        let schemes = self.var_env.clone().into_values().collect::<Vec<_>>();
+        let schemes = var_env.0.clone().into_values().collect::<Vec<_>>();
         let var_env_ftv = schemes.ftv();
 
         // diff between ftvs in principal type and all quantified vars
@@ -202,19 +226,6 @@ impl Typer {
             .collect::<Vec<_>>();
 
         Ok(Scheme(vars, principal_type))
-    }
-
-    // TODO: implement apply() for var_env
-    fn var_env_apply(&mut self, subst: &Subst) {
-        // TODO: fix bad performance when we have the new Subst sig
-        let var_env = self
-            .var_env
-            .clone()
-            .into_iter()
-            .map(|(id, scheme)| (id, scheme.apply(&subst)))
-            .collect::<HashMap<_, _>>();
-
-        self.var_env = var_env;
     }
 
     /// instantiates all quantified variables in a scheme with fresh type variables

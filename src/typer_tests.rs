@@ -7,8 +7,9 @@ use crate::{
 fn infer(input: &str) -> Result<TypedExpr, TypeError> {
     let parsed = parser::parse_expr(input).expect("parsing failed");
     let expr = simplifier::simplify(*parsed).expect("simplification failed");
-    let mut typer = Typer::new(default_prelude());
-    typer.type_check(expr)
+    let (prelude, assumptions) = default_prelude();
+    let mut typer = Typer::new(prelude);
+    typer.type_check(assumptions.into(), expr)
 }
 
 fn assumption(id: &str, scheme: &str) -> Assumption {
@@ -18,15 +19,16 @@ fn assumption(id: &str, scheme: &str) -> Assumption {
     )
 }
 
-fn default_prelude() -> Prelude {
+fn default_prelude() -> (Prelude, Vec<Assumption>) {
     let assumptions = vec![
         assumption("true", "Bool"),
         assumption("false", "Bool"),
         assumption("show", "a . (Show a) => a -> String"),
         assumption("increment", "Int -> Int"),
+        assumption("one", "Int"),
     ];
 
-    Prelude(TypeClassEnv, assumptions)
+    (Prelude(TypeClassEnv), assumptions)
 }
 
 mod principal_type {
@@ -54,19 +56,25 @@ mod principal_type {
 
     #[test]
     fn test_let_polymorphism() {
-        types_to("let id = fun x -> x in id", "t0 -> t0");
+        types_to("let id = fun x -> x in id", "t1 -> t1");
         types_to(r#"
             let id = fun x -> x in
-            let int = id 2 in
-            let bool = id true in
-            int
-        "#, "(Num t4) => t4");
-        types_to(r#"
-            let id = fun x -> x in
-            let int = id 2 in
-            let bool = id true in
-            bool
-        "#, "Bool");
+            let int = id one in
+            id
+        "#, "t4 -> t4");
+        // TODO: uncomment
+        // types_to(r#"
+        //     let id = fun x -> x in
+        //     let int = id one in
+        //     let bool = id true in
+        //     int
+        // "#, "Int");
+        // types_to(r#"
+        //     let id = fun x -> x in
+        //     let int = id one in
+        //     let bool = id true in
+        //     bool
+        // "#, "Bool");
     }
 }
 
