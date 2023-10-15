@@ -245,6 +245,7 @@ impl Typer {
         Ok(ty.apply(&substitutions))
     }
 
+    // TODO: doesn't need to take self
     fn unify(&mut self, constraints: Vec<Constraint>) -> Result<Subst, TypeError> {
         let substs = constraints
             .into_iter()
@@ -262,13 +263,13 @@ impl Unifier {
         match constr {
             Constraint(Type::App(l1, r1), Type::App(l2, r2)) => {
                 let s1 = Self::mgu(Constraint(*l1, *l2))?;
-                let s2 = Self::mgu(Constraint(*r1, *r2))?;
-                Ok(s1.compose(s2))
+                let s2 = Self::mgu(Constraint((*r1).apply(&s1), (*r2).apply(&s1)))?;
+                Ok(s2.compose(s1))
             }
             Constraint(Type::Arrow(l1, r1), Type::Arrow(l2, r2)) => {
                 let s1 = Self::mgu(Constraint(*l1, *l2))?;
-                let s2 = Self::mgu(Constraint(*r1, *r2))?;
-                Ok(s1.compose(s2))
+                let s2 = Self::mgu(Constraint((*r1).apply(&s1), (*r2).apply(&s1)))?;
+                Ok(s2.compose(s1))
             }
             Constraint(Type::Var(tyvar), ty) | Constraint(ty, Type::Var(tyvar)) => {
                 Self::var_bind(tyvar, ty)

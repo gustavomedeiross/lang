@@ -30,11 +30,14 @@ impl Subst {
     }
 
     pub fn compose(self, other: Subst) -> Self {
+        let other = other.apply(&self);
+
         let mut subst = self.0;
         subst.extend(other.0);
         Subst(subst)
     }
 
+    // TODO: should do .compose() on each element ("@@" from THIH)
     pub fn merge(substs: Vec<Subst>) -> Self {
         let subst = substs
             .into_iter()
@@ -48,6 +51,16 @@ impl Subst {
 pub trait Substitutes {
     // TODO: should be apply(&mut self, subst: &Subst) -> Unit
     fn apply(self, subst: &Subst) -> Self;
+}
+
+impl Substitutes for Subst {
+    fn apply(self, subst: &Subst) -> Self {
+        let new_subst = self.0.into_iter().map(|(tyvar, ty)| {
+            (tyvar, ty.apply(subst))
+        }).collect::<Vec<_>>();
+
+        Subst(new_subst)
+    }
 }
 
 impl<T: Substitutes> Substitutes for Vec<T> {
