@@ -19,25 +19,6 @@ pub enum TypeError {
 #[derive(Debug, PartialEq, Clone)]
 pub struct VarEnv(HashMap<Id, Scheme>);
 
-impl VarEnv {
-    // TODO: implement traits
-    pub fn ftv(self) -> Vec<TyVar> {
-        self.0
-            .into_values()
-            .flat_map(|scheme| scheme.ftv())
-            .collect()
-    }
-
-    pub fn apply(&mut self, subst: &Subst) {
-        // TODO: fix bad performance when we have the new Subst sig
-        self.0 = self.0
-            .clone()
-            .into_iter()
-            .map(|(id, scheme)| (id, scheme.apply(subst)))
-            .collect::<HashMap<_, _>>();
-    }
-}
-
 impl From<Vec<Assumption>> for VarEnv {
     fn from(assumptions: Vec<Assumption>) -> Self {
         let var_env = assumptions
@@ -46,6 +27,26 @@ impl From<Vec<Assumption>> for VarEnv {
             .collect::<HashMap<Id, Scheme>>();
 
         Self(var_env)
+    }
+}
+
+impl Substitutes for VarEnv {
+    // TODO: fix bad performance when we have the new Subst sig
+    fn apply(self, subst: &Subst) -> Self {
+        VarEnv(self.0
+            .clone()
+            .into_iter()
+            .map(|(id, scheme)| (id, scheme.apply(subst)))
+            .collect::<HashMap<_, _>>())
+    }
+}
+
+impl HasFreeTypeVariables for VarEnv {
+    fn ftv(self) -> Vec<TyVar> {
+        self.0
+            .into_values()
+            .flat_map(|scheme| scheme.ftv())
+            .collect()
     }
 }
 
@@ -205,17 +206,15 @@ impl Typer {
 
     fn generalize(
         &mut self,
-        mut var_env: VarEnv,
+        var_env: VarEnv,
         qual_type: QualType,
         constraints: Vec<Constraint>,
     ) -> Result<Scheme, TypeError> {
         let subst = self.unify(constraints)?;
         let principal_type = qual_type.apply(&subst);
-        var_env.apply(&subst);
+        let var_env = var_env.apply(&subst);
 
-        // TODO: implement ftv() for var_env
-        let schemes = var_env.0.clone().into_values().collect::<Vec<_>>();
-        let var_env_ftv = schemes.ftv();
+        let var_env_ftv = var_env.ftv();
 
         // diff between ftvs in principal type and all quantified vars
         let vars = principal_type
