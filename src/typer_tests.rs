@@ -62,19 +62,18 @@ mod principal_type {
             let int = id one in
             id
         "#, "t4 -> t4");
-        // TODO: uncomment
-        // types_to(r#"
-        //     let id = fun x -> x in
-        //     let int = id one in
-        //     let bool = id true in
-        //     int
-        // "#, "Int");
-        // types_to(r#"
-        //     let id = fun x -> x in
-        //     let int = id one in
-        //     let bool = id true in
-        //     bool
-        // "#, "Bool");
+        types_to(r#"
+            let id = fun x -> x in
+            let int = id one in
+            let bool = id true in
+            int
+        "#, "Int");
+        types_to(r#"
+            let id = fun x -> x in
+            let int = id one in
+            let bool = id true in
+            bool
+        "#, "Bool");
     }
 }
 
