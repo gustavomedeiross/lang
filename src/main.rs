@@ -6,9 +6,6 @@ mod simplifier;
 mod typer;
 mod types;
 
-#[cfg(test)]
-mod typer_tests;
-
 fn infer(input: &str) -> Result<ast::TypedExpr, typer::TypeError> {
     let parsed = parser::parse_expr(input).expect("parsing failed");
     let expr = simplifier::simplify(*parsed).expect("simplification failed");

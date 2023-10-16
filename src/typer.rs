@@ -8,6 +8,9 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeError {
     UnboundVariable(Id),
