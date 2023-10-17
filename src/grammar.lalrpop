@@ -1,7 +1,7 @@
 use crate::ast::{ParsedExpr, Literal, Id};
 use crate::lexer::{LexicalError, Token};
 use crate::parser::grammar_support;
-use crate::types::{Type, TyVar, TyCon, Kind, QualType, Qual, Pred, Scheme};
+use crate::types::{Type, TyVar, TyCon, Kind, QualType, QualPred, Qual, Pred, Scheme};
 
 grammar;
 
@@ -133,6 +133,15 @@ pub QualTypeExpr: QualType = {
     },
     <ty:TypeExpr> => {
         Qual::new(vec![], ty)
+    }
+}
+
+pub QualPredExpr: QualPred = {
+    "(" <preds:Predicates> ")" "=>" <pred:Predicate> => {
+        Qual::new(preds, pred)
+    },
+    <pred:Predicate> => {
+        Qual::new(vec![], pred)
     }
 }
 

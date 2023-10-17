@@ -35,6 +35,13 @@ pub fn parse_type_scheme(input: &str) -> Result<types::Scheme, SyntaxError> {
         .map_err(SyntaxError)
 }
 
+pub fn parse_qual_pred_expr(input: &str) -> Result<types::QualPred, SyntaxError> {
+    let tokens = lexer::Lexer::new(input);
+    grammar::QualPredExprParser::new()
+        .parse(tokens)
+        .map_err(SyntaxError)
+}
+
 pub mod grammar_support {
     use crate::{
         ast::Id,
@@ -156,7 +163,7 @@ mod expr_tests {
 mod type_expr_tests {
     use crate::{
         ast::Id,
-        types::{Kind, Pred, QualType, Scheme, TyCon, TyVar, Type},
+        types::{Kind, Pred, QualPred, QualType, Scheme, TyCon, TyVar, Type},
     };
 
     fn parse_type_expr(input: &str) -> Type {
@@ -169,6 +176,10 @@ mod type_expr_tests {
 
     fn parse_type_scheme(input: &str) -> Scheme {
         super::parse_type_scheme(input).expect("parsing failed")
+    }
+
+    fn parse_qual_pred_expr(input: &str) -> QualPred {
+        super::parse_qual_pred_expr(input).expect("parsing failed")
     }
 
     #[test]
@@ -289,6 +300,43 @@ mod type_expr_tests {
             Scheme::new(
                 vec![],
                 QualType::new(vec![], Type::Con(TyCon(Id::new("Bool"), Kind::Star)))
+            )
+        );
+    }
+
+    #[test]
+    fn test_qual_pred_expr() {
+        assert_eq!(
+            parse_qual_pred_expr("Show Int"),
+            QualPred::new(
+                vec![],
+                Pred::new(
+                    Id::new("Show"),
+                    Type::Con(TyCon(Id::new("Int"), Kind::Star))
+                )
+            )
+        );
+        assert_eq!(
+            parse_qual_pred_expr("(Ord a) => Eq a"),
+            QualPred::new(
+                vec![Pred::new(
+                    Id::new("Ord"),
+                    Type::Var(TyVar(Id::new("a"), Kind::Star))
+                )],
+                Pred::new(Id::new("Eq"), Type::Var(TyVar(Id::new("a"), Kind::Star)))
+            )
+        );
+        assert_eq!(
+            parse_qual_pred_expr("(Ord a, Eq a) => Something a"),
+            QualPred::new(
+                vec![
+                    Pred::new(Id::new("Ord"), Type::Var(TyVar(Id::new("a"), Kind::Star))),
+                    Pred::new(Id::new("Eq"), Type::Var(TyVar(Id::new("a"), Kind::Star)))
+                ],
+                Pred::new(
+                    Id::new("Something"),
+                    Type::Var(TyVar(Id::new("a"), Kind::Star))
+                )
             )
         );
     }
