@@ -11,9 +11,12 @@ struct Solution {
 struct PredSolver;
 
 impl PredSolver {
+    /// returns a TypeError in case it cannot find a suitable instance for a given predicate
     pub fn solve_preds(
-        type_class_nev: TypeClassEnv,
+        type_class_env: TypeClassEnv,
+        // variables appearing free in the assumptions
         fixed_vars: Vec<TyVar>,
+        // variables that we would like to quantify
         variables_to_quantify: Vec<TyVar>,
         preds: Vec<Pred>,
     ) -> Result<Solution, TypeError> {
