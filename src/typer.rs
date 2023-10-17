@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
     types::{
@@ -61,7 +63,17 @@ impl Typer {
     }
 }
 
-pub struct TypeClassEnv;
+pub struct TypeClassEnv {
+    type_classes: HashMap<Id, TypeClass>,
+}
+
+impl TypeClassEnv {
+    pub fn new() -> Self {
+        Self {
+            type_classes: HashMap::new()
+        }
+    }
+}
 
 struct TGenState(TGen);
 

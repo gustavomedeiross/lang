@@ -7,8 +7,8 @@ use crate::{
 fn infer(input: &str) -> Result<TypedExpr, TypeError> {
     let parsed = parser::parse_expr(input).expect("parsing failed");
     let expr = simplifier::simplify(*parsed).expect("simplification failed");
-    let (prelude, assumptions) = default_env();
-    let mut typer = Typer::new(prelude);
+    let (type_class_env, assumptions) = default_env();
+    let mut typer = Typer::new(type_class_env);
     typer.type_check(assumptions.into(), expr)
 }
 
@@ -20,6 +20,8 @@ fn assumption(id: &str, scheme: &str) -> Assumption {
 }
 
 fn default_env() -> (TypeClassEnv, Vec<Assumption>) {
+    let type_class_env = TypeClassEnv::new();
+
     let assumptions = vec![
         assumption("true", "Bool"),
         assumption("false", "Bool"),
@@ -30,7 +32,7 @@ fn default_env() -> (TypeClassEnv, Vec<Assumption>) {
         assumption("noShow", "NoShow"),
     ];
 
-    (TypeClassEnv, assumptions)
+    (type_class_env, assumptions)
 }
 
 mod principal_type {
