@@ -60,7 +60,7 @@ impl TGenState {
 impl Typer {
     pub fn type_check(&mut self, var_env: VarEnv, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
         let (typed_expr, constraints) = self.infer(var_env, expr)?;
-        let subst = self.unify(constraints)?;
+        let subst = Self::unify(constraints)?;
         Ok(typed_expr.apply(&subst))
     }
 
@@ -179,7 +179,7 @@ impl Typer {
         qual_type: QualType,
         constraints: Vec<Constraint>,
     ) -> Result<Scheme, TypeError> {
-        let subst = self.unify(constraints)?;
+        let subst = Self::unify(constraints)?;
         let principal_type = qual_type.apply(&subst);
         let var_env = var_env.apply(&subst);
 
@@ -213,8 +213,7 @@ impl Typer {
         Ok(ty.apply(&substitutions))
     }
 
-    // TODO: doesn't need to take self
-    fn unify(&mut self, constraints: Vec<Constraint>) -> Result<Subst, TypeError> {
+    fn unify(constraints: Vec<Constraint>) -> Result<Subst, TypeError> {
         let substs = constraints
             .into_iter()
             .map(|constr| Unifier::mgu(constr))
