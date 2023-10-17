@@ -9,7 +9,7 @@ mod types;
 fn infer(input: &str) -> Result<ast::TypedExpr, typer::TypeError> {
     let parsed = parser::parse_expr(input).expect("parsing failed");
     let expr = simplifier::simplify(*parsed).expect("simplification failed");
-    let mut typer = typer::Typer::new(typer::Prelude(typer::TypeClassEnv));
+    let mut typer = typer::Typer::new(typer::TypeClassEnv);
     let var_env = vec![].into();
     typer.type_check(var_env, expr)
 }

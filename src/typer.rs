@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
     types::{
@@ -8,8 +6,18 @@ use crate::{
     },
 };
 
+mod assumption;
+mod constraint;
+mod unifier;
+mod var_env;
+
 #[cfg(test)]
 mod tests;
+
+use assumption::*;
+use constraint::*;
+use unifier::*;
+use var_env::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeError {
@@ -19,60 +27,21 @@ pub enum TypeError {
     OccursCheckFails(TyVar, Type),
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct VarEnv(HashMap<Id, Scheme>);
-
-impl From<Vec<Assumption>> for VarEnv {
-    fn from(assumptions: Vec<Assumption>) -> Self {
-        let var_env = assumptions
-            .into_iter()
-            .map(|Assumption(id, scheme)| (id, scheme))
-            .collect::<HashMap<Id, Scheme>>();
-
-        Self(var_env)
-    }
-}
-
-impl Substitutes for VarEnv {
-    // TODO: fix bad performance when we have the new Subst sig
-    fn apply(self, subst: &Subst) -> Self {
-        VarEnv(self.0
-            .clone()
-            .into_iter()
-            .map(|(id, scheme)| (id, scheme.apply(subst)))
-            .collect::<HashMap<_, _>>())
-    }
-}
-
-impl HasFreeTypeVariables for VarEnv {
-    fn ftv(self) -> Vec<TyVar> {
-        self.0
-            .into_values()
-            .flat_map(|scheme| scheme.ftv())
-            .collect()
-    }
-}
-
 pub struct Typer {
     gen_state: TGenState,
     _type_class_env: TypeClassEnv,
 }
 
 impl Typer {
-    pub fn new(prelude: Prelude) -> Self {
+    pub fn new(type_class_env: TypeClassEnv) -> Self {
         Self {
-            _type_class_env: prelude.0,
+            _type_class_env: type_class_env,
             gen_state: TGenState::initial_state(),
         }
     }
 }
 
-// TODO: should we have assumptions on the Prelude?
-pub struct Prelude(pub TypeClassEnv);
-
 pub struct TypeClassEnv;
-
-pub struct Assumption(pub Id, pub Scheme);
 
 struct TGenState(TGen);
 
@@ -87,9 +56,6 @@ impl TGenState {
         curr.to_tyvar(kind)
     }
 }
-
-#[derive(Debug, PartialEq, Clone)]
-struct Constraint(Type, Type);
 
 impl Typer {
     pub fn type_check(&mut self, var_env: VarEnv, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
@@ -258,38 +224,3 @@ impl Typer {
     }
 }
 
-struct Unifier;
-
-impl Unifier {
-    pub fn mgu(constr: Constraint) -> Result<Subst, TypeError> {
-        match constr {
-            Constraint(Type::App(l1, r1), Type::App(l2, r2)) => {
-                let s1 = Self::mgu(Constraint(*l1, *l2))?;
-                let s2 = Self::mgu(Constraint((*r1).apply(&s1), (*r2).apply(&s1)))?;
-                Ok(s2.compose(s1))
-            }
-            Constraint(Type::Arrow(l1, r1), Type::Arrow(l2, r2)) => {
-                let s1 = Self::mgu(Constraint(*l1, *l2))?;
-                let s2 = Self::mgu(Constraint((*r1).apply(&s1), (*r2).apply(&s1)))?;
-                Ok(s2.compose(s1))
-            }
-            Constraint(Type::Var(tyvar), ty) | Constraint(ty, Type::Var(tyvar)) => {
-                Self::var_bind(tyvar, ty)
-            }
-            Constraint(Type::Con(tycon1), Type::Con(tycon2)) if tycon1 == tycon2 => {
-                Ok(Subst::null())
-            }
-            Constraint(t1, t2) => Err(TypeError::UnificationError(t1, t2)),
-        }
-    }
-
-    fn var_bind(tyvar: TyVar, ty: Type) -> Result<Subst, TypeError> {
-        match ty {
-            ty if ty == (Type::Var(tyvar.clone())) => Ok(Subst::null()),
-            ty if ty.clone().ftv().contains(&tyvar) => Err(TypeError::OccursCheckFails(tyvar, ty)),
-            ty if ty.kind() != tyvar.kind() => Err(TypeError::KindError(KindError::KindMismatch)),
-
-            _ => Ok(Subst::bind(tyvar, ty)),
-        }
-    }
-}

@@ -1,13 +1,13 @@
 use crate::{
     ast::{Id, TypedExpr},
     parser, simplifier,
-    typer::{Assumption, Prelude, TypeClassEnv, TypeError, Typer},
+    typer::{Assumption, TypeClassEnv, TypeError, Typer},
 };
 
 fn infer(input: &str) -> Result<TypedExpr, TypeError> {
     let parsed = parser::parse_expr(input).expect("parsing failed");
     let expr = simplifier::simplify(*parsed).expect("simplification failed");
-    let (prelude, assumptions) = default_prelude();
+    let (prelude, assumptions) = default_env();
     let mut typer = Typer::new(prelude);
     typer.type_check(assumptions.into(), expr)
 }
@@ -19,7 +19,7 @@ fn assumption(id: &str, scheme: &str) -> Assumption {
     )
 }
 
-fn default_prelude() -> (Prelude, Vec<Assumption>) {
+fn default_env() -> (TypeClassEnv, Vec<Assumption>) {
     let assumptions = vec![
         assumption("true", "Bool"),
         assumption("false", "Bool"),
@@ -28,7 +28,7 @@ fn default_prelude() -> (Prelude, Vec<Assumption>) {
         assumption("one", "Int"),
     ];
 
-    (Prelude(TypeClassEnv), assumptions)
+    (TypeClassEnv, assumptions)
 }
 
 mod principal_type {
