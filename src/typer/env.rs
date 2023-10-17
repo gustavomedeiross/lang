@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use crate::{
     ast::Id,
-    types::{HasFreeTypeVariables, Scheme, Subst, Substitutes, TyVar, TypeClass},
+    types::{
+        HasFreeTypeVariables, Pred, Qual, Scheme, Subst, Substitutes, TyVar, TypeClass,
+        TypeClassInstance,
+    },
 };
 
 pub struct Assumption(pub Id, pub Scheme);
@@ -43,6 +46,8 @@ impl HasFreeTypeVariables for VarEnv {
     }
 }
 
+// type classes
+
 pub struct TypeClassEnv {
     type_classes: HashMap<Id, TypeClass>,
 }
@@ -52,5 +57,33 @@ impl TypeClassEnv {
         Self {
             type_classes: HashMap::new(),
         }
+    }
+
+    // TODO: add checks - should return Result
+    pub fn add_typeclass(&mut self, definition: Qual<Pred>) {
+        let type_class_id = definition.clone().pred().id();
+        let type_class = TypeClass::new(definition);
+        let is_new = self
+            .type_classes
+            .insert(type_class_id, type_class)
+            .is_none();
+
+        if !is_new {
+            panic!("Error adding type class: class was already defined in the env");
+        }
+    }
+
+    // TODO: add checks - should return Result
+    pub fn add_instance(&mut self, definition: Qual<Pred>) {
+        let type_class_id = definition.clone().pred().id();
+
+        let type_class = self
+            .type_classes
+            .get_mut(&type_class_id)
+            .expect("Failed to add instance: class not found");
+
+        let instance = TypeClassInstance::new(definition);
+
+        type_class.add_instance(instance)
     }
 }

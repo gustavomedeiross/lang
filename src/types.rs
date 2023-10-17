@@ -241,6 +241,16 @@ impl QualType {
     }
 }
 
+/// Qualified predicates - predicate that contains other predicates
+/// e.g.: "(Eq a) => Ord a
+pub type QualPred = Qual<Pred>;
+
+impl QualPred {
+    pub fn pred(self) -> Pred {
+        self.1
+    }
+}
+
 /// Represents a type qualifier
 /// - A function type, e.g.: "(Eq a, Eq b) => a -> b -> Bool"
 /// - A type class definition, e.g.: "class Applicative m => Monad m where"
@@ -284,6 +294,14 @@ pub struct Pred(Id, Type);
 impl Pred {
     pub fn new(id: Id, ty: Type) -> Self {
         Pred(id, ty)
+    }
+
+    pub fn id(self) -> Id {
+        self.0
+    }
+
+    pub fn ty(self) -> Type {
+        self.1
     }
 }
 
@@ -337,13 +355,32 @@ impl HasFreeTypeVariables for Scheme {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypeClass {
-    definition: Qual<Pred>,
+    definition: QualPred,
     instances: Vec<TypeClassInstance>,
+}
+
+impl TypeClass {
+    pub fn new(definition: QualPred) -> Self {
+        Self {
+            definition,
+            instances: vec![],
+        }
+    }
+
+    pub fn add_instance(&mut self, instance: TypeClassInstance) {
+        self.instances.push(instance);
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypeClassInstance {
-    definition: Qual<Pred>,
+    definition: QualPred,
+}
+
+impl TypeClassInstance {
+    pub fn new(definition: QualPred) -> Self {
+        Self { definition }
+    }
 }
 
 pub mod prelude {
