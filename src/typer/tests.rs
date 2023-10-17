@@ -210,27 +210,4 @@ mod typed_expr {
         );
         infers(expr, expected)
     }
-
-    // #[test]
-    // fn test_application_of_qual_type_without_instance() -> Result<(), TypeError> {
-    //     let typed_expr = infer("show true")?.stringify_types();
-    //     assert_eq!(
-    //         typed_expr,
-    //         Expr::Lambda(
-    //             Id::new("x"),
-    //             "Show t0 => t0 -> String".into(),
-    //             Box::new(Expr::App(
-    //                 Box::new(Expr::Var(Id::new("show"), "Show t0 => t0 -> String".into())),
-    //                 // TODO: should this have "Show a" or not?
-    //                 // it's not strictly required, as this structure is only going to be used for coge generation
-    //                 // so whatever works best, if we prefer to remove the "Show" predicate (from the Expr::Var)
-    //                 // we can do that.
-    //                 Box::new(Expr::Var(Id::new("x"), "Show t0 => t0".into())),
-    //                 "String".into(),
-    //             ))
-    //         )
-    //     );
-
-    //     Ok(())
-    // }
 }
