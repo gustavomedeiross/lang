@@ -1,6 +1,6 @@
 use crate::types::{Pred, TyVar};
 
-use super::{TypeError, TypeClassEnv};
+use super::{TypeClassEnv, TypeError};
 
 #[derive(Debug, PartialEq, Clone)]
 struct Solution {

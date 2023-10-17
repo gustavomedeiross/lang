@@ -200,7 +200,6 @@ mod type_expr_tests {
         );
     }
 
-
     #[test]
     #[ignore = "not yet support"]
     fn test_multiple_type_arrows() {

@@ -72,7 +72,11 @@ impl TGenState {
 }
 
 impl Typer {
-    pub fn type_check(&mut self, var_env: VarEnv, expr: UntypedExpr) -> Result<TypedExpr, TypeError> {
+    pub fn type_check(
+        &mut self,
+        var_env: VarEnv,
+        expr: UntypedExpr,
+    ) -> Result<TypedExpr, TypeError> {
         let (typed_expr, constraints) = self.infer(var_env, expr)?;
         let subst = Self::unify(constraints)?;
         Ok(typed_expr.apply(&subst))
@@ -80,10 +84,16 @@ impl Typer {
 
     // update TypedExpr to be something that can have TGen values
     // in the middle of the expression (look at the definition of thio::quantify)
-    fn infer(&mut self, mut var_env: VarEnv, expr: UntypedExpr) -> Result<(TypedExpr, Vec<Constraint>), TypeError> {
+    fn infer(
+        &mut self,
+        mut var_env: VarEnv,
+        expr: UntypedExpr,
+    ) -> Result<(TypedExpr, Vec<Constraint>), TypeError> {
         match expr {
             UntypedExpr::Var(id, _) => {
-                let scheme = var_env.0 .get(&id)
+                let scheme = var_env
+                    .0
+                    .get(&id)
                     .ok_or_else(|| TypeError::UnboundVariable(id.clone()))?
                     .clone();
 
@@ -149,7 +159,9 @@ impl Typer {
             UntypedExpr::Lambda(param, (), body_expr) => {
                 let param_tyvar = Type::Var(self.gen_state.gen_fresh(Kind::Star));
                 let param_qual_type = QualType::new(vec![], param_tyvar.clone());
-                var_env.0.insert(param.clone(), Self::dont_generalize(param_qual_type));
+                var_env
+                    .0
+                    .insert(param.clone(), Self::dont_generalize(param_qual_type));
 
                 let (typed_body_expr, constraints) = self.infer(var_env, *body_expr)?;
                 let body_qual_type = typed_body_expr.clone().get_type();
@@ -236,4 +248,3 @@ impl Typer {
         Ok(Subst::merge(substs))
     }
 }
-

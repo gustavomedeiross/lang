@@ -61,23 +61,32 @@ mod principal_type {
     #[test]
     fn test_let_polymorphism() {
         types_to("let id = fun x -> x in id", "t1 -> t1");
-        types_to(r#"
+        types_to(
+            r#"
             let id = fun x -> x in
             let int = id one in
             id
-        "#, "t4 -> t4");
-        types_to(r#"
+        "#,
+            "t4 -> t4",
+        );
+        types_to(
+            r#"
             let id = fun x -> x in
             let int = id one in
             let bool = id true in
             int
-        "#, "Int");
-        types_to(r#"
+        "#,
+            "Int",
+        );
+        types_to(
+            r#"
             let id = fun x -> x in
             let int = id one in
             let bool = id true in
             bool
-        "#, "Bool");
+        "#,
+            "Bool",
+        );
     }
 
     // TODO: test
@@ -116,7 +125,10 @@ mod typeclasses {
 
     #[test]
     fn resolves_predicates() {
-        returns_error("noShow", "Type error: missing typeclass instance: Show(NoShow)");
+        returns_error(
+            "noShow",
+            "Type error: missing typeclass instance: Show(NoShow)",
+        );
     }
 }
 

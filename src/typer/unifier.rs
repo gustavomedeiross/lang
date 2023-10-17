@@ -1,4 +1,4 @@
-use crate::types::{Subst, Type, HasKind, HasFreeTypeVariables, KindError, Substitutes, TyVar};
+use crate::types::{HasFreeTypeVariables, HasKind, KindError, Subst, Substitutes, TyVar, Type};
 
 use super::{Constraint, TypeError};
 

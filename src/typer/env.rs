@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{ast::Id, types::{Scheme, Substitutes, Subst, HasFreeTypeVariables, TyVar, TypeClass}};
+use crate::{
+    ast::Id,
+    types::{HasFreeTypeVariables, Scheme, Subst, Substitutes, TyVar, TypeClass},
+};
 
 pub struct Assumption(pub Id, pub Scheme);
 
@@ -21,11 +24,13 @@ impl From<Vec<Assumption>> for VarEnv {
 impl Substitutes for VarEnv {
     // TODO: fix bad performance when we have the new Subst sig
     fn apply(self, subst: &Subst) -> Self {
-        VarEnv(self.0
-            .clone()
-            .into_iter()
-            .map(|(id, scheme)| (id, scheme.apply(subst)))
-            .collect::<HashMap<_, _>>())
+        VarEnv(
+            self.0
+                .clone()
+                .into_iter()
+                .map(|(id, scheme)| (id, scheme.apply(subst)))
+                .collect::<HashMap<_, _>>(),
+        )
     }
 }
 
@@ -45,8 +50,7 @@ pub struct TypeClassEnv {
 impl TypeClassEnv {
     pub fn new() -> Self {
         Self {
-            type_classes: HashMap::new()
+            type_classes: HashMap::new(),
         }
     }
 }
-

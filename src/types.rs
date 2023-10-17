@@ -63,9 +63,11 @@ pub trait Substitutes {
 
 impl Substitutes for Subst {
     fn apply(self, subst: &Subst) -> Self {
-        let new_subst = self.0.into_iter().map(|(tyvar, ty)| {
-            (tyvar, ty.apply(subst))
-        }).collect::<Vec<_>>();
+        let new_subst = self
+            .0
+            .into_iter()
+            .map(|(tyvar, ty)| (tyvar, ty.apply(subst)))
+            .collect::<Vec<_>>();
 
         Subst(new_subst)
     }
