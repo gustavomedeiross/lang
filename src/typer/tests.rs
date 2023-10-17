@@ -19,8 +19,19 @@ fn assumption(id: &str, scheme: &str) -> Assumption {
     )
 }
 
+fn add_typeclass(type_class_env: &mut TypeClassEnv, qual_pred: &str) {
+    let qual_pred = parser::parse_qual_pred_expr(qual_pred).expect("add_typeclass failure: parsing of qual pred failed");
+    type_class_env.add_typeclass(qual_pred);
+}
+
+fn add_instance(type_class_env: &mut TypeClassEnv, qual_pred: &str) {
+    let qual_pred = parser::parse_qual_pred_expr(qual_pred).expect("add_instance failure: parsing of qual pred failed");
+    type_class_env.add_instance(qual_pred);
+}
+
 fn default_env() -> (TypeClassEnv, Vec<Assumption>) {
-    let type_class_env = TypeClassEnv::new();
+    let mut type_class_env = TypeClassEnv::new();
+    add_typeclass(&mut type_class_env, "Show a");
 
     let assumptions = vec![
         assumption("true", "Bool"),
@@ -31,6 +42,10 @@ fn default_env() -> (TypeClassEnv, Vec<Assumption>) {
         // NoShow doesn't implement "Show"
         assumption("noShow", "NoShow"),
     ];
+
+    add_instance(&mut type_class_env, "Show Bool");
+    add_instance(&mut type_class_env, "Show String");
+    add_instance(&mut type_class_env, "Show Int");
 
     (type_class_env, assumptions)
 }
