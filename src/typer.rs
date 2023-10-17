@@ -8,6 +8,8 @@ use crate::{
 
 mod assumption;
 mod constraint;
+mod pred_solver;
+mod typeclass;
 mod unifier;
 mod var_env;
 
@@ -16,6 +18,8 @@ mod tests;
 
 use assumption::*;
 use constraint::*;
+use pred_solver::*;
+use typeclass::*;
 use unifier::*;
 use var_env::*;
 

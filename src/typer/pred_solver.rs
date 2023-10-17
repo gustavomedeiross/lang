@@ -1,0 +1,22 @@
+use crate::types::{Pred, TyVar};
+
+use super::{TypeError, TypeClassEnv};
+
+#[derive(Debug, PartialEq, Clone)]
+struct Solution {
+    pub deferred: Vec<Pred>,
+    pub retained: Vec<Pred>,
+}
+
+struct PredSolver;
+
+impl PredSolver {
+    pub fn solve_preds(
+        type_class_nev: TypeClassEnv,
+        fixed_vars: Vec<TyVar>,
+        variables_to_quantify: Vec<TyVar>,
+        preds: Vec<Pred>,
+    ) -> Result<Solution, TypeError> {
+        todo!()
+    }
+}
