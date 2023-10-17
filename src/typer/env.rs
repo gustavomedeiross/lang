@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{ast::Id, types::{Scheme, Substitutes, Subst, HasFreeTypeVariables, TyVar}};
+use crate::{ast::Id, types::{Scheme, Substitutes, Subst, HasFreeTypeVariables, TyVar, TypeClass}};
 
-use super::Assumption;
+pub struct Assumption(pub Id, pub Scheme);
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct VarEnv(pub HashMap<Id, Scheme>);
@@ -37,3 +37,16 @@ impl HasFreeTypeVariables for VarEnv {
             .collect()
     }
 }
+
+pub struct TypeClassEnv {
+    type_classes: HashMap<Id, TypeClass>,
+}
+
+impl TypeClassEnv {
+    pub fn new() -> Self {
+        Self {
+            type_classes: HashMap::new()
+        }
+    }
+}
+

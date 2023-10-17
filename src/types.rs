@@ -333,6 +333,17 @@ impl HasFreeTypeVariables for Scheme {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct TypeClass {
+    definition: Qual<Pred>,
+    instances: Vec<TypeClassInstance>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct TypeClassInstance {
+    definition: Qual<Pred>,
+}
+
 pub mod prelude {
     use super::*;
 

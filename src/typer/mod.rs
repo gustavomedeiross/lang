@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
     types::{
@@ -8,22 +6,18 @@ use crate::{
     },
 };
 
-mod assumption;
 mod constraint;
+mod env;
 mod pred_solver;
-mod typeclass;
 mod unifier;
-mod var_env;
 
 #[cfg(test)]
 mod tests;
 
-use assumption::*;
 use constraint::*;
+pub use env::*;
 use pred_solver::*;
-use typeclass::*;
 use unifier::*;
-use var_env::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeError {
@@ -59,18 +53,6 @@ impl Typer {
         Self {
             _type_class_env: type_class_env,
             gen_state: TGenState::initial_state(),
-        }
-    }
-}
-
-pub struct TypeClassEnv {
-    type_classes: HashMap<Id, TypeClass>,
-}
-
-impl TypeClassEnv {
-    pub fn new() -> Self {
-        Self {
-            type_classes: HashMap::new()
         }
     }
 }
