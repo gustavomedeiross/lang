@@ -75,6 +75,35 @@ mod principal_type {
             bool
         "#, "Bool");
     }
+
+    // TODO: test
+    //
+    // "x -> y -> y + y" `yields` Num t1 => t0 -> t1 -> t1
+    //
+    // "let f x = show x in f" `yields` Show a => a -> String
+    //
+    // "show(true)" `yields` missing typeclass instance: Show(bool)
+    //
+    // "let f x = show x in f true" `yields` "missing typeclass instance: Show(bool)
+    //
+    // let f = fun x -> let y = show(x) in x in f `yields` Show a => a -> a
+}
+
+mod typeclasses {
+    use super::infer;
+    use crate::parser;
+
+    fn types_to(input: &str, expected: &str) {
+        let typed_expr = infer(&input).expect("failed to infer type").get_type();
+        let expected = parser::parse_qual_type_expr(expected).expect("parsing of qual_type failed");
+        assert_eq!(typed_expr, expected);
+    }
+
+    #[test]
+    fn infers_type_qualifiers() {
+        types_to("show", "(Show t0) => t0 -> String");
+        types_to("let f = fun x -> show x in f", "(Show t3) => t3 -> String");
+    }
 }
 
 mod typed_expr {
@@ -192,16 +221,4 @@ mod typed_expr {
 
     //     Ok(())
     // }
-
-    // TODO: test
-    //
-    // "x -> y -> y + y" `yields` Num t1 => t0 -> t1 -> t1
-    //
-    // "let f x = show x in f" `yields` Show a => a -> String
-    //
-    // "show(true)" `yields` missing typeclass instance: Show(bool)
-    //
-    // "let f x = show x in f true" `yields` "missing typeclass instance: Show(bool)
-    //
-    // let f = fun x -> let y = show(x) in x in f `yields` Show a => a -> a
 }
