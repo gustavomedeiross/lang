@@ -31,6 +31,22 @@ pub enum TypeError {
     OccursCheckFails(TyVar, Type),
 }
 
+impl std::fmt::Display for TypeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Type error: ")?;
+        match self {
+            TypeError::UnboundVariable(id) => write!(f, "unbound variable: {}", id),
+            TypeError::KindError(err) => write!(f, "kind error: {}", err),
+            TypeError::UnificationError(t1, t2) => {
+                write!(f, "unification error: {} != {}", t1, t2)
+            }
+            TypeError::OccursCheckFails(tyvar, ty) => {
+                write!(f, "occurs check fails: {} occurs in {}", tyvar, ty)
+            }
+        }
+    }
+}
+
 pub struct Typer {
     gen_state: TGenState,
     _type_class_env: TypeClassEnv,

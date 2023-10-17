@@ -26,6 +26,8 @@ fn default_env() -> (TypeClassEnv, Vec<Assumption>) {
         assumption("show", "a . (Show a) => a -> String"),
         assumption("increment", "Int -> Int"),
         assumption("one", "Int"),
+        // NoShow doesn't implement "Show"
+        assumption("noShow", "NoShow"),
     ];
 
     (TypeClassEnv, assumptions)
@@ -99,10 +101,20 @@ mod typeclasses {
         assert_eq!(typed_expr, expected);
     }
 
+    fn returns_error(input: &str, expected: &str) {
+        let type_error = infer(&input).expect_err("expected type error, got");
+        assert_eq!(type_error.to_string(), expected.to_owned());
+    }
+
     #[test]
     fn infers_type_qualifiers() {
         types_to("show", "(Show t0) => t0 -> String");
         types_to("let f = fun x -> show x in f", "(Show t3) => t3 -> String");
+    }
+
+    #[test]
+    fn resolves_predicates() {
+        returns_error("noShow", "Type error: missing typeclass instance: Show(NoShow)");
     }
 }
 

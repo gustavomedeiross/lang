@@ -12,6 +12,14 @@ pub enum KindError {
     KindMismatch,
 }
 
+impl std::fmt::Display for KindError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            KindError::KindMismatch => write!(f, "kind mismatch"),
+        }
+    }
+}
+
 pub trait HasKind {
     fn kind(&self) -> Result<Kind, KindError>;
 }
@@ -97,7 +105,7 @@ pub enum Type {
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Type::Var(tyvar) => write!(f, "{}", tyvar.0),
+            Type::Var(tyvar) => write!(f, "{}", tyvar),
             Type::Con(tycon) => write!(f, "{}", tycon.0),
             Type::App(t, u) => write!(f, "{} {}", t, u),
             Type::Arrow(t, u) => write!(f, "{} -> {}", t, u),
@@ -181,6 +189,12 @@ impl TyVar {
     pub fn from_int(int: usize, kind: Kind) -> Self {
         let id = Id::new(&format!("t{}", int));
         TyVar(id, kind)
+    }
+}
+
+impl std::fmt::Display for TyVar {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
