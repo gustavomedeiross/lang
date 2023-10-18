@@ -301,10 +301,21 @@ impl Typer {
     }
 
     fn entailment_by_instances(&self, pred: Pred) -> Option<Vec<Pred>> {
-        let type_class_id = pred.id();
+        let type_class_id = pred.clone().id();
         let type_class = self.type_class_env.find_class(&type_class_id)?;
 
-        todo!()
+        type_class
+            .instances()
+            .into_iter()
+            .map(|instance| {
+                let head = instance.clone().0.pred();
+                let preds = instance.0.preds();
+                let subst = match_pred(head, pred.clone()).ok()?;
+
+                Some(preds.apply(&subst))
+            })
+            .find(Option::is_some)
+            .flatten()
     }
 
     fn simplify(&self, preds: Vec<Pred>) -> Vec<Pred> {

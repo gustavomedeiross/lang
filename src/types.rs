@@ -415,16 +415,18 @@ impl TypeClass {
     pub fn add_instance(&mut self, instance: TypeClassInstance) {
         self.instances.push(instance);
     }
+
+    pub fn instances(self) -> Vec<TypeClassInstance> {
+        self.instances
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct TypeClassInstance {
-    definition: QualPred,
-}
+pub struct TypeClassInstance(pub QualPred);
 
 impl TypeClassInstance {
     pub fn new(definition: QualPred) -> Self {
-        Self { definition }
+        Self(definition)
     }
 }
 
