@@ -86,4 +86,8 @@ impl TypeClassEnv {
 
         type_class.add_instance(instance)
     }
+
+    pub fn find_class(&self, type_class_id: &Id) -> Option<TypeClass> {
+        self.type_classes.get(type_class_id).map(|tc| tc.to_owned())
+    }
 }

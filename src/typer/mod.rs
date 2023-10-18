@@ -2,7 +2,7 @@ use crate::{
     ast::{Id, Literal, TypedExpr, UntypedExpr},
     types::{
         prelude::t_string, HasFreeTypeVariables, HasKind, Kind, KindError, Pred, Qual, QualType,
-        Scheme, Subst, Substitutes, TGen, TyVar, Type,
+        Scheme, Subst, SubstMergeError, Substitutes, TGen, TyVar, Type,
     },
 };
 
@@ -24,6 +24,15 @@ pub enum TypeError {
     UnificationError(Type, Type),
     OccursCheckFails(TyVar, Type),
     MissingTypeClassInstance(Pred),
+    TypesDontMatch,
+    ClassesDiffer,
+    SubstMergeFails,
+}
+
+impl From<SubstMergeError> for TypeError {
+    fn from(value: SubstMergeError) -> Self {
+        TypeError::SubstMergeFails
+    }
 }
 
 impl std::fmt::Display for TypeError {
@@ -40,6 +49,15 @@ impl std::fmt::Display for TypeError {
             }
             TypeError::MissingTypeClassInstance(pred) => {
                 write!(f, "missing typeclass instance: {}", pred)
+            }
+            TypeError::TypesDontMatch => {
+                write!(f, "types don't match")
+            }
+            TypeError::ClassesDiffer => {
+                write!(f, "type classes differ")
+            }
+            TypeError::SubstMergeFails => {
+                write!(f, "subst merge fails")
             }
         }
     }
@@ -249,7 +267,7 @@ impl Typer {
             .map(|constr| Unifier::mgu(constr))
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(Subst::merge(substs))
+        Ok(Subst::join(substs))
     }
 
     /// returns a TypeError in case it cannot find a suitable instance for a given predicate
@@ -276,17 +294,46 @@ impl Typer {
             Ok(vec![pred])
         } else {
             let preds = self
-                .entailment_by_instances(&pred)
+                .entailment_by_instances(pred.clone())
                 .ok_or_else(|| TypeError::MissingTypeClassInstance(pred))?;
             self.to_hnfs(preds)
         }
     }
 
-    fn entailment_by_instances(&self, pred: &Pred) -> Option<Vec<Pred>> {
+    fn entailment_by_instances(&self, pred: Pred) -> Option<Vec<Pred>> {
+        let type_class_id = pred.id();
+        let type_class = self.type_class_env.find_class(&type_class_id)?;
+
         todo!()
     }
 
     fn simplify(&self, preds: Vec<Pred>) -> Vec<Pred> {
         todo!()
+    }
+}
+
+fn match_pred(p1: Pred, p2: Pred) -> Result<Subst, TypeError> {
+    if p1.clone().id() == p2.clone().id() {
+        match_ty(p1.ty(), p2.ty())
+    } else {
+        Err(TypeError::ClassesDiffer)
+    }
+}
+
+fn match_ty(t1: Type, t2: Type) -> Result<Subst, TypeError> {
+    match (t1, t2) {
+        (Type::App(l1, r1), Type::App(l2, r2)) => {
+            let sl = match_ty(*l1, *l2)?;
+            let sr = match_ty(*r1, *r2)?;
+            Ok(sl.merge(sr)?)
+        }
+        (Type::Arrow(l1, r1), Type::Arrow(l2, r2)) => {
+            let sl = match_ty(*l1, *l2)?;
+            let sr = match_ty(*r1, *r2)?;
+            Ok(sl.merge(sr)?)
+        }
+        (Type::Var(u), t) if u.kind() == t.kind() => Ok(Subst::bind(u, t)),
+        (Type::Con(tc1), Type::Con(tc2)) if tc1 == tc2 => Ok(Subst::null()),
+        (_, _) => Err(TypeError::TypesDontMatch),
     }
 }

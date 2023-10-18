@@ -1,7 +1,7 @@
 use crate::ast::Id;
-use std::{fmt, thread::panicking};
+use std::{collections::HashSet, fmt, thread::panicking};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub enum Kind {
     Star,
     KFun(Box<Kind>, Box<Kind>),
@@ -28,6 +28,8 @@ pub trait HasKind {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Subst(pub Vec<(TyVar, Type)>);
 
+pub struct SubstMergeError;
+
 impl Subst {
     pub fn null() -> Self {
         Subst(vec![])
@@ -45,8 +47,37 @@ impl Subst {
         Subst(subst)
     }
 
+    pub fn merge(self, other: Subst) -> Result<Self, SubstMergeError> {
+        let s1_hash = self
+            .0
+            .clone()
+            .into_iter()
+            .map(|s| s.0)
+            .collect::<HashSet<_>>();
+        let s2_hash = other
+            .0
+            .clone()
+            .into_iter()
+            .map(|s| s.0)
+            .collect::<HashSet<_>>();
+
+        let intersection = s1_hash.intersection(&s2_hash).cloned().collect::<Vec<_>>();
+
+        let agree = intersection
+            .into_iter()
+            .all(|tyvar| Type::Var(tyvar.clone()).apply(&self) == Type::Var(tyvar).apply(&other));
+
+        if agree {
+            let mut subst = self.0;
+            subst.extend(other.0);
+            Ok(Subst(subst))
+        } else {
+            Err(SubstMergeError)
+        }
+    }
+
     // TODO: should do .compose() on each element ("@@" from THIH)
-    pub fn merge(substs: Vec<Subst>) -> Self {
+    pub fn join(substs: Vec<Subst>) -> Self {
         let subst = substs
             .into_iter()
             .map(|s| s.0)
@@ -184,7 +215,7 @@ impl TGen {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct TyVar(pub Id, pub Kind);
 
 impl TyVar {
