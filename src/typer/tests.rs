@@ -20,12 +20,14 @@ fn assumption(id: &str, scheme: &str) -> Assumption {
 }
 
 fn add_typeclass(type_class_env: &mut TypeClassEnv, qual_pred: &str) {
-    let qual_pred = parser::parse_qual_pred_expr(qual_pred).expect("add_typeclass failure: parsing of qual pred failed");
+    let qual_pred = parser::parse_qual_pred_expr(qual_pred)
+        .expect("add_typeclass failure: parsing of qual pred failed");
     type_class_env.add_typeclass(qual_pred);
 }
 
 fn add_instance(type_class_env: &mut TypeClassEnv, qual_pred: &str) {
-    let qual_pred = parser::parse_qual_pred_expr(qual_pred).expect("add_instance failure: parsing of qual pred failed");
+    let qual_pred = parser::parse_qual_pred_expr(qual_pred)
+        .expect("add_instance failure: parsing of qual pred failed");
     type_class_env.add_instance(qual_pred);
 }
 

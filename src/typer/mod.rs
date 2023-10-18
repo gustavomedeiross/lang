@@ -8,7 +8,6 @@ use crate::{
 
 mod constraint;
 mod env;
-mod pred_solver;
 mod unifier;
 
 #[cfg(test)]
@@ -16,7 +15,6 @@ mod tests;
 
 use constraint::*;
 pub use env::*;
-use pred_solver::*;
 use unifier::*;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -45,13 +43,13 @@ impl std::fmt::Display for TypeError {
 
 pub struct Typer {
     gen_state: TGenState,
-    _type_class_env: TypeClassEnv,
+    type_class_env: TypeClassEnv,
 }
 
 impl Typer {
     pub fn new(type_class_env: TypeClassEnv) -> Self {
         Self {
-            _type_class_env: type_class_env,
+            type_class_env,
             gen_state: TGenState::initial_state(),
         }
     }
@@ -82,8 +80,6 @@ impl Typer {
         Ok(typed_expr.apply(&subst))
     }
 
-    // update TypedExpr to be something that can have TGen values
-    // in the middle of the expression (look at the definition of thio::quantify)
     fn infer(
         &mut self,
         mut var_env: VarEnv,
@@ -219,6 +215,10 @@ impl Typer {
             .filter(|tyvar| !var_env_ftv.contains(tyvar))
             .collect::<Vec<_>>();
 
+        let preds = self.solve_preds(principal_type.clone().preds())?;
+
+        let principal_type = QualType::new(preds, principal_type.clone().ty());
+
         Ok(Scheme(vars, principal_type))
     }
 
@@ -246,5 +246,11 @@ impl Typer {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Subst::merge(substs))
+    }
+
+    // TODO: handle deferred/retained preds & ambiguity
+    /// returns a TypeError in case it cannot find a suitable instance for a given predicate
+    pub fn solve_preds(&self, preds: Vec<Pred>) -> Result<Vec<Pred>, TypeError> {
+        Ok(preds)
     }
 }
