@@ -1,5 +1,5 @@
 use crate::ast::Id;
-use std::fmt;
+use std::{fmt, thread::panicking};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Kind {
@@ -302,6 +302,20 @@ impl Pred {
 
     pub fn ty(self) -> Type {
         self.1
+    }
+
+    pub fn in_head_normal_form(&self) -> bool {
+        Self::ty_in_hnf(&self.1)
+    }
+
+    fn ty_in_hnf(ty: &Type) -> bool {
+        match ty {
+            Type::Var(_) => true,
+            Type::Con(_) => false,
+            Type::App(t, _) => Self::ty_in_hnf(&(*t)),
+            Type::Arrow(t, _) => Self::ty_in_hnf(&(*t)),
+            Type::Gen(_) => panic!("Not implemented for TGen"),
+        }
     }
 }
 

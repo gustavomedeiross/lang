@@ -23,6 +23,7 @@ pub enum TypeError {
     KindError(KindError),
     UnificationError(Type, Type),
     OccursCheckFails(TyVar, Type),
+    MissingTypeClassInstance(Pred),
 }
 
 impl std::fmt::Display for TypeError {
@@ -36,6 +37,9 @@ impl std::fmt::Display for TypeError {
             }
             TypeError::OccursCheckFails(tyvar, ty) => {
                 write!(f, "occurs check fails: {} occurs in {}", tyvar, ty)
+            }
+            TypeError::MissingTypeClassInstance(pred) => {
+                write!(f, "missing typeclass instance: {}", pred)
             }
         }
     }
@@ -248,9 +252,41 @@ impl Typer {
         Ok(Subst::merge(substs))
     }
 
-    // TODO: handle deferred/retained preds & ambiguity
     /// returns a TypeError in case it cannot find a suitable instance for a given predicate
-    pub fn solve_preds(&self, preds: Vec<Pred>) -> Result<Vec<Pred>, TypeError> {
-        Ok(preds)
+    fn solve_preds(&self, preds: Vec<Pred>) -> Result<Vec<Pred>, TypeError> {
+        // TODO: handle deferred/retained preds & ambiguity
+        self.reduce_preds(preds)
+    }
+
+    fn reduce_preds(&self, preds: Vec<Pred>) -> Result<Vec<Pred>, TypeError> {
+        let preds = self.to_hnfs(preds)?;
+        Ok(self.simplify(preds))
+    }
+
+    fn to_hnfs(&self, preds: Vec<Pred>) -> Result<Vec<Pred>, TypeError> {
+        preds
+            .into_iter()
+            .map(|pred| self.to_hnf(pred))
+            .collect::<Result<Vec<_>, _>>()
+            .map(|ps| ps.into_iter().flatten().collect::<Vec<_>>())
+    }
+
+    fn to_hnf(&self, pred: Pred) -> Result<Vec<Pred>, TypeError> {
+        if pred.in_head_normal_form() {
+            Ok(vec![pred])
+        } else {
+            let preds = self
+                .entailment_by_instances(&pred)
+                .ok_or_else(|| TypeError::MissingTypeClassInstance(pred))?;
+            self.to_hnfs(preds)
+        }
+    }
+
+    fn entailment_by_instances(&self, pred: &Pred) -> Option<Vec<Pred>> {
+        todo!()
+    }
+
+    fn simplify(&self, preds: Vec<Pred>) -> Vec<Pred> {
+        todo!()
     }
 }
