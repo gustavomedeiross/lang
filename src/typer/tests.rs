@@ -34,6 +34,7 @@ fn add_instance(type_class_env: &mut TypeClassEnv, qual_pred: &str) {
 fn default_env() -> (TypeClassEnv, Vec<Assumption>) {
     let mut type_class_env = TypeClassEnv::new();
     add_typeclass(&mut type_class_env, "Show a");
+    add_typeclass(&mut type_class_env, "Num a");
 
     let assumptions = vec![
         assumption("true", "Bool"),
@@ -48,6 +49,7 @@ fn default_env() -> (TypeClassEnv, Vec<Assumption>) {
     add_instance(&mut type_class_env, "Show Bool");
     add_instance(&mut type_class_env, "Show String");
     add_instance(&mut type_class_env, "Show Int");
+    add_instance(&mut type_class_env, "Num Int");
 
     (type_class_env, assumptions)
 }
@@ -143,8 +145,8 @@ mod typeclasses {
     #[test]
     fn resolves_predicates() {
         returns_error(
-            "noShow",
-            "Type error: missing typeclass instance: Show(NoShow)",
+            "show noShow",
+            "Type error: missing typeclass instance: Show NoShow",
         );
     }
 }

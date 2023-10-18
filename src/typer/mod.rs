@@ -97,9 +97,12 @@ impl Typer {
         var_env: VarEnv,
         expr: UntypedExpr,
     ) -> Result<TypedExpr, TypeError> {
-        let (typed_expr, constraints) = self.infer(var_env, expr)?;
-        let subst = Self::unify(constraints)?;
-        Ok(typed_expr.apply(&subst))
+        let (typed_expr, constraints) = self.infer(var_env.clone(), expr)?;
+        let subst = Self::unify(constraints.clone())?;
+        let typed_expr = typed_expr.apply(&subst);
+        // used just to check the predicates
+        let _ = self.generalize(var_env, typed_expr.clone().get_type(), constraints)?;
+        Ok(typed_expr)
     }
 
     fn infer(
